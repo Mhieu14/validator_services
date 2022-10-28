@@ -30,14 +30,13 @@
 |
 
 ==================
-validator_services
+Validator Services
 ==================
 
 
-    Add a short description here!
+Validator Service supplies admin and client services for creating node's snapshots and node's instances
 
 
-A longer description of your project goes here...
 
 
 .. _pyscaffold-notes:
