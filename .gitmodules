@@ -1,0 +1,3 @@
+[submodule "src/validator_share_model"]
+	path = src/validator_share_model
+	url = git@github.com:vchain-zone/validator_share_model.git
