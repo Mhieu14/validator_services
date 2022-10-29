@@ -1,0 +1,7 @@
+venv
+project
+.idea
+*__pycache__*
+test
+projects
+.vscode
