@@ -1,0 +1,7 @@
+aiohttp==3.7.3
+aio-pika==6.7.1
+celery==4.2.0
+pymongo==3.11.0
+motor==2.2.0
+requests
+kombu==4.6.11
