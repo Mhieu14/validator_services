@@ -8,6 +8,7 @@ class Config:
         'host': os.environ.get('SERVER_HOST', 'localhost'),
         'port': int(os.environ.get('SERVER_PORT', 8080))
     }
+    JWT_KEY = os.environ.get('JWT_KEY') or ''
 
 class DBConfig:
     DATABASE = os.environ.get("MONGO_DATABASE") or "validator-service"
@@ -21,3 +22,4 @@ class QueueConfig:
     PASSWORD = os.environ.get("RABBITMQ_PASSWORD") or "guest"
     HOST = os.environ.get("RABBITMQ_HOST") or "localhost"
     PORT = os.environ.get("RABBITMQ_PORT") or "5672"
+    EXCHANGE = os.environ.get("RABBITMQ_EXCHANGE") or "vchain.zone"

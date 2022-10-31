@@ -28,7 +28,7 @@ class BrokerClient:
         async with self.__channel_pool.acquire() as channel:
             await channel.set_qos(10)
 
-            exchange = await channel.declare_exchange(name="vchain.zone", type=aio_pika.ExchangeType.TOPIC, durable=True)
+            exchange = await channel.declare_exchange(name=QueueConfig.EXCHANGE, type=aio_pika.ExchangeType.TOPIC, durable=True)
 
             queue = await channel.declare_queue(
                 queue_name, durable=True, auto_delete=False
@@ -48,7 +48,7 @@ class BrokerClient:
 
     async def publish(self, routing_key, message, reply_to=None):
         async with self.__channel_pool.acquire() as channel:
-            exchange = await channel.declare_exchange(name="vchain.zone", type=aio_pika.ExchangeType.TOPIC, durable=True)
+            exchange = await channel.declare_exchange(name=QueueConfig.EXCHANGE, type=aio_pika.ExchangeType.TOPIC, durable=True)
             await exchange.publish(
                 aio_pika.Message(body=message.encode(), reply_to=reply_to),
                 routing_key=routing_key,

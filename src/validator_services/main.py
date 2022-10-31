@@ -10,6 +10,8 @@ from routes_handler import RouteHandler
 from utils.broker_client import BrokerClient
 from utils.middleware import self_authorize
 
+from snapshot.event_handler import handle_create_snapshot_event
+
 _LOGGER = get_logger(__name__)
 
 app = web.Application(middlewares=[self_authorize], client_max_size=1024 ** 2)
@@ -22,7 +24,7 @@ async def setup_service(app):
         app["broker_client"] = BrokerClient()
         
         event_handlers = {
-
+            "edit_name_of_topic": handle_create_snapshot_event
         }
 
         asyncio.create_task(app["broker_client"].consume("validatorservice.events", event_handlers, database))

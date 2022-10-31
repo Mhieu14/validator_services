@@ -12,5 +12,5 @@ class SnapshotHandler:
         self.__database = database
         self.__broker_client = broker_client
 
-    async def get_snapshots(self):
+    # async def get_snapshots(self):
         
