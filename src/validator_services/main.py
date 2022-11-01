@@ -10,7 +10,7 @@ from routes_handler import RouteHandler
 from utils.broker_client import BrokerClient
 from utils.middleware import self_authorize
 
-from snapshot.event_handler import handle_create_snapshot_event
+from snapshot.event_handler import handle_create_snapshot_event, handle_delete_snapshot_event, test_handle_request_create_snapshot
 
 _LOGGER = get_logger(__name__)
 
@@ -24,14 +24,25 @@ async def setup_service(app):
         app["broker_client"] = BrokerClient()
         
         event_handlers = {
-            "edit_name_of_topic": handle_create_snapshot_event
+            "validatorservice.events.create_snapshot": handle_create_snapshot_event,
+            "validatorservice.events.delete_snapshot": handle_delete_snapshot_event,
+            # "validatorservice.events.create_node": None,
+            # "validatorservice.events.delete_node": None,
+            "driver.snapshot.request.create": test_handle_request_create_snapshot,
+            # "driver.snapshot.request.delete": None
         }
 
         asyncio.create_task(app["broker_client"].consume("validatorservice.events", event_handlers, database))
 
         handler = RouteHandler(database, app["broker_client"])
 
+        # project
+        app.router.add_route("GET", "/v1/projects", handler.get_projects)
+        # app.router.add_route("GET", "/v1/projects/{project_id}", handler.get_snapshots)
+        app.router.add_route("POST", "/v1/projects", handler.create_project)
+
         app.router.add_route("GET", "/v1/snapshots", handler.get_snapshots)
+        app.router.add_route("GET", "/v1/snapshots/{snapshot_id}", handler.get_snapshot)
         app.router.add_route("POST", "/v1/snapshots", handler.create_snapshot)
 
         cors = aiohttp_cors.setup(

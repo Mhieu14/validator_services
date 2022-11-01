@@ -9,9 +9,10 @@ _LOGGER = get_logger(__name__)
 
 class BrokerClient:
     def __init__(self):
-        self.__url = f"amqp://{QueueConfig.USERNAME}:{QueueConfig.PASSWORD}@{QueueConfig.HOST}:{QueueConfig.PORT}"
-        self.__connection_pool = Pool(self._get_connection, max_size=2)
-        self.__channel_pool = Pool(self._get_channel, max_size=10)
+        # self.__url = f"amqp://{QueueConfig.USERNAME}:{QueueConfig.PASSWORD}@{QueueConfig.HOST}:{QueueConfig.PORT}"
+        self.__url = "amqps://adisranc:8OlrBtLg1romcuxPXCXkPJMtOLPOH-ly@armadillo.rmq.cloudamqp.com/adisranc"
+        self.__connection_pool: Pool = Pool(self._get_connection, max_size=2)
+        self.__channel_pool: Pool = Pool(self._get_channel, max_size=10)
 
     async def _get_connection(self):
         return await aio_pika.connect_robust(self.__url)
@@ -47,6 +48,7 @@ class BrokerClient:
                     await message.ack()
 
     async def publish(self, routing_key, message, reply_to=None):
+        # print("PUBLISH routing_key: ", routing_key, "message: ", message)
         async with self.__channel_pool.acquire() as channel:
             exchange = await channel.declare_exchange(name=QueueConfig.EXCHANGE, type=aio_pika.ExchangeType.TOPIC, durable=True)
             await exchange.publish(

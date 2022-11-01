@@ -1,5 +1,8 @@
 import asyncio
+from enum import Enum
 import resource
+import string
+from typing import Collection
 import motor.motor_asyncio as aiomotor
 from bson.objectid import ObjectId
 from pymongo import ReturnDocument
@@ -12,7 +15,8 @@ _LOGGER = get_logger(__name__)
 
 class Database:
     def __init__(self):
-        self._mongo_uri = f"mongodb://{DBConfig.USERNAME}:{DBConfig.PASSWORD}@{DBConfig.HOST}:{DBConfig.PORT}"
+        # self._mongo_uri = f"mongodb://{DBConfig.USERNAME}:{DBConfig.PASSWORD}@{DBConfig.HOST}:{DBConfig.PORT}"
+        self._mongo_uri = "mongodb+srv://user1:my-secret-pw@cluster0.wjqj9.mongodb.net/?retryWrites=true&w=majority"
         self._dbname = DBConfig.DATABASE
         self._conn = None
 
@@ -23,24 +27,51 @@ class Database:
             _LOGGER.info(f"List collection: {await self._conn.list_collection_names()}")
             _LOGGER.info("Successfully connected to the database")
             return
-        except ServerSelectionTimeoutError:
+        except ServerSelectionTimeoutError as error:
             _LOGGER.error("Cannot connect to the database")
+            print(error)
             raise ServerSelectionTimeoutError
-            
-        
-    async def create_snapshot(self, new_snapshot):
-        result = await self._conn["snapshots"].insert_ont(new_snapshot)
-        snapshot_id = str(result.inserted_id)
-        return snapshot_id
 
-    async def get_snapshots(self, **kwargs):
-        if "snapshot_id" in kwargs:
-            kwargs["_id"] = ObjectId(kwargs["snapshot_id"])
-            del kwargs["snapshot_id"]
-        cursor = self._conn["snapshot"].find(kwargs)
-        snapshots = []
-        async for snapshot in cursor:
-            snapshot["snapshot_id"] = str(snapshot["_id"])
-            snapshot.pop("_id", None)
-            snapshots.append(snapshot)
-        return snapshots
+    PROJECTS = "projects"
+    SNAPSHOTS = "snapshots"
+    COLLECTIONS_ID = {
+        PROJECTS: "project_id",
+        SNAPSHOTS: "snapshot_id"
+    }
+    
+    async def create(self, collection: string, new_document: dict):
+        result = await self._conn[collection].insert_one(new_document)
+        inserted_id = str(result.inserted_id)
+        return inserted_id
+        
+    async def find(self, collection: string, query: dict = None):
+        cursor = self._conn[collection].find(query)
+        result = []
+        async for document in cursor:
+            document[self.COLLECTIONS_ID[collection]] = str(document["_id"])
+            document.pop("_id", None)
+            result.append(document)
+        return result
+
+    async def find_by_id(self, collection: string, id: string):
+        query = {  "_id": ObjectId(id) }
+        document = await self._conn[collection].find_one(query)
+        document[self.COLLECTIONS_ID[collection]] = str(document["_id"])
+        document.pop("_id", None)
+        return document
+
+    async def update(self, collection: string, id: string, modification: dict, unset: dict = None):
+        filter = {
+            "_id": ObjectId(id)
+        }
+        update = {}
+        if modification:
+            update['$set'] = modification
+        if unset:
+            update['$unset'] = unset
+        updated = await self._conn[collection].find_one_and_update(filter,
+                                                                    update=update,
+                                                                    return_document=ReturnDocument.AFTER)
+        updated[self.COLLECTIONS_ID[collection]] = str(updated["_id"])
+        updated.pop("_id", None)
+        return updated
