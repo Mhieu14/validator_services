@@ -3,7 +3,7 @@ import json
 
 from aiohttp import web
 from utils.logging import get_logger
-from utils.response import success, ApiBadRequest, ApiInternalError
+from utils.response import success, ApiBadRequest, ApiNotFound
 from database import Database
 from utils.broker_client import BrokerClient
 
@@ -18,11 +18,36 @@ class ProjectHandler:
         project["user_id"] = user_info["user_id"]
         created_id = await self.__database.create(collection=Database.PROJECTS, new_document=project)
         return success({
-            "id": created_id
+            "project_id": created_id
         })
 
-    async def get_projects(self, user_id):
+    async def get_projects(self, user_info, skip, limit):
+        user_id = user_info["user_id"]
         query = { "user_id": user_id }
-        snapshots = await self.__database.find(collection=Database.PROJECTS, query=query)
-        return success(snapshots)
+        projects = await self.__database.find(collection=Database.PROJECTS, query=query, skip=skip, limit=limit)
+        count_projects = await self.__database.count(collection=Database.PROJECTS, query=query)
+        return success({
+            "projects": projects,
+            "meta": {
+                "offset": skip,
+                "limit": limit,
+                "total": count_projects
+            }
+        })
         
+    async def get_project(self, project_id, skip, limit):
+        project = await self.__database.find_by_id(collection=Database.PROJECTS, id=project_id)
+        query = { "project_id": project_id }
+        nodes =  await self.__database.find(collection=Database.NODES, query=query, skip=skip, limit=limit)
+        count_nodes = await self.__database.count(collection=Database.NODES, query=query)
+        project["nodes"] = nodes
+        if project is None:
+            return ApiNotFound("Project")
+        return success({
+            "project": project,
+            "meta": {
+                "offset": skip,
+                "limit": limit,
+                "total": count_nodes,
+            }
+        })

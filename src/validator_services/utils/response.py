@@ -79,6 +79,12 @@ class ApiUnauthorized(_ApiError):
         self.message = 'Unauthorized: ' + message
         super().__init__()
 
+class ApiForbidden(_ApiError):
+    def __init__(self, message):
+        self.status_code = 403
+        self.message = 'Forbidden: ' + message
+        super().__init__()
+
 
 def success(response_data, status=200, **kwargs):
     return json_response({**kwargs, "data": response_data, "status": "success"}, status=status)

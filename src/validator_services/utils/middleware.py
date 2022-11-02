@@ -4,7 +4,7 @@ from aiohttp.web import middleware
 from utils.response import ApiUnauthorized
 
 
-REQUIRED_FIELDS = ["user_name", "user_id", "user_type"]
+REQUIRED_FIELDS = ["username", "user_id", "role"]
 def validate_fields_user_info(user_info):
     for field in REQUIRED_FIELDS:
         if field not in user_info:
@@ -30,7 +30,6 @@ async def self_authorize(request, handler):
                 user_info = jwt.decode(token, Config.JWT_KEY, algorithms=['HS256'])
             except:
                 raise ApiUnauthorized('Invalid auth token')
-            print(user_info)
             validate_fields_user_info(user_info)
             resp = await handler(request, user_info)
             return resp

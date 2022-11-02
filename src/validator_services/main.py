@@ -11,6 +11,7 @@ from utils.broker_client import BrokerClient
 from utils.middleware import self_authorize
 
 from snapshot.event_handler import handle_create_snapshot_event, handle_delete_snapshot_event, test_handle_request_create_snapshot
+from node.event_handler import handle_create_node_event, handle_delete_node_event, test_handle_request_create_node
 
 _LOGGER = get_logger(__name__)
 
@@ -26,25 +27,37 @@ async def setup_service(app):
         event_handlers = {
             "validatorservice.events.create_snapshot": handle_create_snapshot_event,
             "validatorservice.events.delete_snapshot": handle_delete_snapshot_event,
-            # "validatorservice.events.create_node": None,
-            # "validatorservice.events.delete_node": None,
-            "driver.snapshot.request.create": test_handle_request_create_snapshot,
-            # "driver.snapshot.request.delete": None
+            "validatorservice.events.create_node": handle_create_node_event,
+            "validatorservice.events.delete_node": handle_delete_node_event,
         }
 
+        # event_handlers_test = {
+        #     "driver.snapshot.request.create": test_handle_request_create_snapshot,
+        #     "driver.node.request.create": test_handle_request_create_node
+        # }
+
         asyncio.create_task(app["broker_client"].consume("validatorservice.events", event_handlers, database))
+        # asyncio.create_task(app["broker_client"].consume("test.driver.request", event_handlers_test, database))
 
         handler = RouteHandler(database, app["broker_client"])
 
         # project
         app.router.add_route("GET", "/v1/projects", handler.get_projects)
-        # app.router.add_route("GET", "/v1/projects/{project_id}", handler.get_snapshots)
+        app.router.add_route("GET", "/v1/projects/{project_id}", handler.get_project)
         app.router.add_route("POST", "/v1/projects", handler.create_project)
 
+        # snapshot
         app.router.add_route("GET", "/v1/snapshots", handler.get_snapshots)
         app.router.add_route("GET", "/v1/snapshots/{snapshot_id}", handler.get_snapshot)
         app.router.add_route("POST", "/v1/snapshots", handler.create_snapshot)
+        app.router.add_route("DELETE", "/v1/snapshots/{snapshot_id}", handler.delete_snapshot)
 
+        # node
+        app.router.add_route("GET", "/v1/nodes", handler.get_nodes)
+        app.router.add_route("GET", "/v1/nodes/{node_id}", handler.get_node)
+        app.router.add_route("POST", "/v1/nodes", handler.create_node)
+        app.router.add_route("DELETE", "/v1/nodes/{node_id}", handler.delete_node)
+        
         cors = aiohttp_cors.setup(
             app,
             defaults={

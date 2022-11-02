@@ -34,18 +34,21 @@ class Database:
 
     PROJECTS = "projects"
     SNAPSHOTS = "snapshots"
+    NODES = "nodes"
     COLLECTIONS_ID = {
         PROJECTS: "project_id",
-        SNAPSHOTS: "snapshot_id"
+        SNAPSHOTS: "snapshot_id",
+        NODES: "node_id"
     }
     
     async def create(self, collection: string, new_document: dict):
+        # add datetime here
         result = await self._conn[collection].insert_one(new_document)
         inserted_id = str(result.inserted_id)
         return inserted_id
         
-    async def find(self, collection: string, query: dict = None):
-        cursor = self._conn[collection].find(query)
+    async def find(self, collection: string, query: dict = {}, skip=None, limit=None):
+        cursor = self._conn[collection].find(query).sort("_id", -1).skip(skip).limit(limit)
         result = []
         async for document in cursor:
             document[self.COLLECTIONS_ID[collection]] = str(document["_id"])
@@ -53,9 +56,19 @@ class Database:
             result.append(document)
         return result
 
+    async def count(self, collection: string, query: dict = None):
+        count = await self._conn[collection].count_documents(query)
+        return count
+
     async def find_by_id(self, collection: string, id: string):
-        query = {  "_id": ObjectId(id) }
+        try:
+            query = {  "_id": ObjectId(id) }
+        except:
+            return None
         document = await self._conn[collection].find_one(query)
+        if document is None:
+            print("Invalid dou")
+            return None 
         document[self.COLLECTIONS_ID[collection]] = str(document["_id"])
         document.pop("_id", None)
         return document
@@ -64,6 +77,7 @@ class Database:
         filter = {
             "_id": ObjectId(id)
         }
+        # add datetime here
         update = {}
         if modification:
             update['$set'] = modification
@@ -72,6 +86,8 @@ class Database:
         updated = await self._conn[collection].find_one_and_update(filter,
                                                                     update=update,
                                                                     return_document=ReturnDocument.AFTER)
+        if updated is None:
+            return None
         updated[self.COLLECTIONS_ID[collection]] = str(updated["_id"])
         updated.pop("_id", None)
         return updated

@@ -56,3 +56,8 @@ class BrokerClient:
                 routing_key=routing_key,
             )
             _LOGGER.debug(f"Finish publish {self.__url}")
+
+    async def publish_dict_data(self, routing_key, message, reply_to=None):
+        # add datetime here
+        json_message = json.dumps(message)
+        await self.publish(routing_key, json_message, reply_to)

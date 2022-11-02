@@ -1,0 +1,87 @@
+import os
+import json
+
+from aiohttp import web
+from utils.logging import get_logger
+from utils.response import success, ApiBadRequest, ApiNotFound, ApiForbidden
+from database import Database
+from utils.broker_client import BrokerClient
+from node.status import NodeStatus
+from snapshot.status import SnapshotStatus
+
+_LOGGER = get_logger(__name__)
+
+class NodeHandler:
+    def __init__(self, database: Database, broker_client: BrokerClient):
+        self.__database: Database = database
+        self.__broker_client: BrokerClient = broker_client
+
+    async def get_nodes(self, user_info, skip=None, limit=None):
+        query = { "user_id": user_info["user_id"] }
+        nodes = await self.__database.find(collection=Database.NODES, query=query, skip=skip, limit=limit)
+        count_nodes = await self.__database.count(collection=Database.NODES, query=query)
+        return success({
+            "nodes": nodes,
+            "meta": {
+                "offset": skip,
+                "limit": limit,
+                "total": count_nodes
+            }
+        })
+
+    async def get_node(self, node_id):
+        node = await self.__database.find_by_id(collection=Database.NODES, id=node_id)
+        if node is None:
+            return ApiNotFound("Node")
+        return success(node)
+    
+    async def create_node(self, node, user_info):
+        snapshot_id = node["snapshot_id"]
+        snapshot_info = await self.__database.find_by_id(collection=Database.SNAPSHOTS, id=snapshot_id)
+        if snapshot_info is None:
+            raise ApiBadRequest("Snapshot is not found")
+        if ("status" not in snapshot_info) or (snapshot_info["status"] != SnapshotStatus.CREATED.name):
+            raise ApiBadRequest("Snapshot is creating or created fail")
+
+        node["network"] = snapshot_info.get("network", None)
+        node["user_id"] = user_info["user_id"]
+        node["status"] = NodeStatus.CREATE_PENDING.name
+        created_id = await self.__database.create(collection=Database.NODES, new_document=node)
+        routing_key = "driver.node.request.create"
+        message = {
+            "node_id": created_id,
+            "data": {
+                "moniker": node["moniker"],
+                "commission_rate": node["commission_rate"],
+                "commission_max_rate": node["commission_max_rate"],
+                "commission_max_change_rate": node["commission_max_change_rate"],
+                "min_self_delegation": node["min_self_delegation"],
+                "snapshot_cloud_id": snapshot_info["snapshot_cloud_id"]
+            }
+        }
+        reply_to = "validatorservice.events.create_node"
+        await self.__broker_client.publish_dict_data(routing_key, message, reply_to)
+        return success({
+            "node_id": created_id,
+            "status": NodeStatus.CREATE_PENDING.name
+        })
+    
+    async def delete_node(self, node_id, user_info):
+        existed_node = await self.__database.find_by_id(collection=Database.NODES, id=node_id)
+        if existed_node is None:
+            raise ApiBadRequest("Node is not found")
+        if user_info["role"] != "admin" and user_info["user_id"] != existed_node["user_id"]:
+            raise ApiForbidden("")
+
+        modification = { "status": NodeStatus.DELETE_PENDING.name}
+        await self.__database.update(collection=Database.NODES, id=node_id, modification=modification)
+
+        routing_key = "driver.node.request.delete"
+        message = { "node_id": node_id }
+        reply_to = "validatorservice.events.delete_node"
+        await self.__broker_client.publish_dict_data(routing_key, message, reply_to)
+
+        return success({
+            "node_id": node_id,
+            "status": NodeStatus.DELETE_PENDING.name
+        })
