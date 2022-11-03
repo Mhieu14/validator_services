@@ -17,3 +17,4 @@ PyYAML==5.1.2
 uvloop==0.14.0
 requests==2.25.1
 dnspython
+google-api-python-client

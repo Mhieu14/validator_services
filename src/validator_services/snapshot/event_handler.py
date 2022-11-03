@@ -15,7 +15,8 @@ async def handle_create_snapshot_event(body, reply_to, message_id, database: Dat
         if 'error' in body:
             modification = {
                 "status": SnapshotStatus.CREATE_FAIL.name,
-                "message": body["error"]["message"]
+                "message": body["error"]["message"],
+                "detail": body["error"]["detail"]
             }
             await database.update(collection=Database.SNAPSHOTS, id=snapshot_id, modification=modification)
         else:
@@ -37,7 +38,8 @@ async def handle_delete_snapshot_event(body, reply_to, message_id, database: Dat
         if 'error' in body:
             modification = {
                 "status": SnapshotStatus.DELETE_FAIL.name,
-                "message": body["error"]["message"]
+                "message": body["error"]["message"],
+                "detail": body["error"]["detail"]
             }
             await database.update(collection=Database.SNAPSHOTS, id=snapshot_id, modification=modification)
         else:
@@ -53,6 +55,9 @@ async def handle_delete_snapshot_event(body, reply_to, message_id, database: Dat
 async def test_handle_request_create_snapshot(body, reply_to, message_id, database: Database):
     try:
         print("test_handle_request_create_snapshot")
+
+        print(body)
+        print(type(body))
         broker_client = BrokerClient()
         routing_key = reply_to
         message = {

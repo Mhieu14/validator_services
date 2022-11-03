@@ -1,5 +1,5 @@
 import os
-import json
+import sys
 
 from aiohttp import web
 from utils.logging import get_logger
@@ -8,6 +8,12 @@ from database import Database
 from utils.broker_client import BrokerClient
 from node.status import NodeStatus
 from snapshot.status import SnapshotStatus
+from utils.helper import convertProtobufToJSON
+
+current = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.dirname(os.path.dirname(current)))
+
+from validator_share_model.src.messages_queue import node_pb2
 
 _LOGGER = get_logger(__name__)
 
@@ -47,20 +53,21 @@ class NodeHandler:
         node["user_id"] = user_info["user_id"]
         node["status"] = NodeStatus.CREATE_PENDING.name
         created_id = await self.__database.create(collection=Database.NODES, new_document=node)
+
         routing_key = "driver.node.request.create"
-        message = {
-            "node_id": created_id,
-            "data": {
-                "moniker": node["moniker"],
-                "commission_rate": node["commission_rate"],
-                "commission_max_rate": node["commission_max_rate"],
-                "commission_max_change_rate": node["commission_max_change_rate"],
-                "min_self_delegation": node["min_self_delegation"],
-                "snapshot_cloud_id": snapshot_info["snapshot_cloud_id"]
-            }
-        }
+        message = node_pb2.NodeCreateMessage()
+        message.node_id = created_id
+        message.node.name = node["name"]
+        message.node.description = node.get("description", "")
+        message.node.size_gigabytes = node.get("size_gigabytes", 0)
+        message.node.tags.extend(node.get("tags", []))
+        message.node.snapshot_cloud_id = snapshot_info["snapshot_cloud_id"]
+        message.node.file_system_type = node.get("file_system_type", "")
+        message.node.region = node.get("region", "")
+        message.node.moniker = node["moniker"]
+        messageJson = convertProtobufToJSON(message)
         reply_to = "validatorservice.events.create_node"
-        await self.__broker_client.publish_dict_data(routing_key, message, reply_to)
+        await self.__broker_client.publish(routing_key, messageJson, reply_to)
         return success({
             "node_id": created_id,
             "status": NodeStatus.CREATE_PENDING.name
@@ -77,9 +84,11 @@ class NodeHandler:
         await self.__database.update(collection=Database.NODES, id=node_id, modification=modification)
 
         routing_key = "driver.node.request.delete"
-        message = { "node_id": node_id }
+        message = node_pb2.NodeDeleteMessage()
+        message.node_id = node_id
+        messageJson = convertProtobufToJSON(message)
         reply_to = "validatorservice.events.delete_node"
-        await self.__broker_client.publish_dict_data(routing_key, message, reply_to)
+        await self.__broker_client.publish(routing_key, messageJson, reply_to)
 
         return success({
             "node_id": node_id,

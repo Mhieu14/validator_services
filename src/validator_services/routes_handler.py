@@ -44,7 +44,7 @@ class RouteHandler:
     async def create_snapshot(seft, request, user_info):
         _LOGGER.debug("Create a new snapshot")
         snapshot = await decode_request(request)
-        required_fields = ["node_cloud_id", "name", "network"]
+        required_fields = ["volumn_cloud_id", "name", "network", "droplet_cloud_id"]
         validate_fields(required_fields, snapshot)
         response = await seft._snapshot_handler.create_snapshot(snapshot, user_info)
         return response
@@ -72,7 +72,7 @@ class RouteHandler:
     async def create_node(seft, request, user_info):
         _LOGGER.debug("Create a new node")
         node = await decode_request(request)
-        required_fields = ["snapshot_id", "moniker", "commission_rate", "commission_max_rate", "commission_max_change_rate", "min_self_delegation"]
+        required_fields = ["name", "snapshot_id", "moniker"]
         validate_fields(required_fields, node)
         response = await seft._node_handler.create_node(node, user_info)
         return response

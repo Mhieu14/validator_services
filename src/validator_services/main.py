@@ -1,6 +1,8 @@
 import sys
 import asyncio
 import aiohttp_cors
+import sys
+import os
 
 from aiohttp import web, ClientSession
 from config import Config
@@ -12,6 +14,10 @@ from utils.middleware import self_authorize
 
 from snapshot.event_handler import handle_create_snapshot_event, handle_delete_snapshot_event, test_handle_request_create_snapshot
 from node.event_handler import handle_create_node_event, handle_delete_node_event, test_handle_request_create_node
+
+current = os.path.dirname(os.path.realpath(__file__))
+parent = os.path.dirname(current)
+sys.path.append(parent)
 
 _LOGGER = get_logger(__name__)
 
@@ -31,13 +37,13 @@ async def setup_service(app):
             "validatorservice.events.delete_node": handle_delete_node_event,
         }
 
-        # event_handlers_test = {
-        #     "driver.snapshot.request.create": test_handle_request_create_snapshot,
-        #     "driver.node.request.create": test_handle_request_create_node
-        # }
+        event_handlers_test = {
+            "driver.snapshot.request.create": test_handle_request_create_snapshot,
+            "driver.node.request.create": test_handle_request_create_node
+        }
 
         asyncio.create_task(app["broker_client"].consume("validatorservice.events", event_handlers, database))
-        # asyncio.create_task(app["broker_client"].consume("test.driver.request", event_handlers_test, database))
+        asyncio.create_task(app["broker_client"].consume("test.driver.request", event_handlers_test, database))
 
         handler = RouteHandler(database, app["broker_client"])
 

@@ -1,5 +1,5 @@
 import os
-import json
+import sys
 
 from aiohttp import web
 from utils.logging import get_logger
@@ -7,6 +7,12 @@ from utils.response import success, ApiBadRequest, ApiForbidden, ApiNotFound
 from database import Database
 from utils.broker_client import BrokerClient
 from snapshot.status import SnapshotStatus
+from utils.helper import convertProtobufToJSON
+
+current = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.dirname(os.path.dirname(current)))
+
+from validator_share_model.src.messages_queue import snapshot_pb2
 
 _LOGGER = get_logger(__name__)
 
@@ -41,15 +47,18 @@ class SnapshotHandler:
         snapshot["status"] = SnapshotStatus.CREATE_PENDING.name
         created_id = await self.__database.create(collection=Database.SNAPSHOTS, new_document=snapshot)
         routing_key = "driver.snapshot.request.create"
-        message = {
-            "snapshot_id": created_id,
-            "data": {
-                "name": snapshot["name"],
-                "node_cloud_id": snapshot.get("node_cloud_id", None)
-            }
-        }
+
+        message = snapshot_pb2.SnapshotCreateMessage()
+        message.snapshot_id = created_id
+        message.snapshot.name = snapshot["name"]
+        message.snapshot.volumn_cloud_id = snapshot["volumn_cloud_id"]
+        message.snapshot.tags.extend(snapshot.get("tags", []))
+        message.snapshot.network = snapshot["network"]
+        message.snapshot.droplet_cloud_id = snapshot["droplet_cloud_id"]
+        messageJson = convertProtobufToJSON(message)
+
         reply_to = "validatorservice.events.create_snapshot"
-        await self.__broker_client.publish_dict_data(routing_key, message, reply_to)
+        await self.__broker_client.publish(routing_key, messageJson, reply_to)
         return success({
             "snapshot_id": created_id,
             "status": SnapshotStatus.CREATE_PENDING.name
@@ -71,9 +80,12 @@ class SnapshotHandler:
         await self.__database.update(collection=Database.SNAPSHOTS, id=snapshot_id, modification=modification)
 
         routing_key = "driver.snapshot.request.delete"
-        message = { "snapshot_id": snapshot_id }
+        message = snapshot_pb2.SnapshotDeleteMessage()
+        message.snapshot_id = snapshot_id
+        messageJson = convertProtobufToJSON(message)
+        
         reply_to = "validatorservice.events.delete_snapshot"
-        await self.__broker_client.publish_dict_data(routing_key, message, reply_to)
+        await self.__broker_client.publish(routing_key, messageJson, reply_to)
 
         return success({
             "snapshot_id": snapshot_id,
