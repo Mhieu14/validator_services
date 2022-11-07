@@ -13,6 +13,8 @@ class BrokerClient:
         self.__url = "amqps://adisranc:8OlrBtLg1romcuxPXCXkPJMtOLPOH-ly@armadillo.rmq.cloudamqp.com/adisranc"
         self.__connection_pool: Pool = Pool(self._get_connection, max_size=2)
         self.__channel_pool: Pool = Pool(self._get_channel, max_size=10)
+        print(self.__connection_pool)
+        print(self.__channel_pool)
 
     async def _get_connection(self):
         return await aio_pika.connect_robust(self.__url)
@@ -29,7 +31,7 @@ class BrokerClient:
         async with self.__channel_pool.acquire() as channel:
             await channel.set_qos(10)
 
-            exchange = await channel.declare_exchange(name=QueueConfig.EXCHANGE, type=aio_pika.ExchangeType.TOPIC, durable=True)
+            exchange = await channel.declare_exchange(name=QueueConfig.EXCHANGE_NAME, type=aio_pika.ExchangeType.TOPIC, durable=True)
 
             queue = await channel.declare_queue(
                 queue_name, durable=True, auto_delete=False
@@ -50,7 +52,7 @@ class BrokerClient:
     async def publish(self, routing_key, message, reply_to=None):
         # print("PUBLISH routing_key: ", routing_key, "message: ", message)
         async with self.__channel_pool.acquire() as channel:
-            exchange = await channel.declare_exchange(name=QueueConfig.EXCHANGE, type=aio_pika.ExchangeType.TOPIC, durable=True)
+            exchange = await channel.declare_exchange(name=QueueConfig.EXCHANGE_NAME, type=aio_pika.ExchangeType.TOPIC, durable=True)
             await exchange.publish(
                 aio_pika.Message(body=message.encode(), reply_to=reply_to),
                 routing_key=routing_key,

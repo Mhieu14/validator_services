@@ -54,7 +54,7 @@ class NodeHandler:
         node["status"] = NodeStatus.CREATE_PENDING.name
         created_id = await self.__database.create(collection=Database.NODES, new_document=node)
 
-        routing_key = "driver.node.request.create"
+        routing_key = "driver.node.request.create_node"
         message = node_pb2.NodeCreateMessage()
         message.node_id = created_id
         message.node.name = node["name"]
@@ -65,6 +65,8 @@ class NodeHandler:
         message.node.file_system_type = node.get("file_system_type", "")
         message.node.region = node.get("region", "")
         message.node.moniker = node["moniker"]
+        message.node.network = node["network"]
+        message.user.user_id = user_info["user_id"]
         messageJson = convertProtobufToJSON(message)
         reply_to = "validatorservice.events.create_node"
         await self.__broker_client.publish(routing_key, messageJson, reply_to)
@@ -79,11 +81,13 @@ class NodeHandler:
             raise ApiBadRequest("Node is not found")
         if user_info["role"] != "admin" and user_info["user_id"] != existed_node["user_id"]:
             raise ApiForbidden("")
+        if existed_node == NodeStatus.CREATE_PENDING.name:
+            raise ApiBadRequest("Can not delete creating node")
 
         modification = { "status": NodeStatus.DELETE_PENDING.name}
         await self.__database.update(collection=Database.NODES, id=node_id, modification=modification)
 
-        routing_key = "driver.node.request.delete"
+        routing_key = "driver.node.request.delete_node"
         message = node_pb2.NodeDeleteMessage()
         message.node_id = node_id
         messageJson = convertProtobufToJSON(message)

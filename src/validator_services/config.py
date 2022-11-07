@@ -22,4 +22,6 @@ class QueueConfig:
     PASSWORD = os.environ.get("RABBITMQ_PASSWORD") or "guest"
     HOST = os.environ.get("RABBITMQ_HOST") or "localhost"
     PORT = os.environ.get("RABBITMQ_PORT") or "5672"
-    EXCHANGE = os.environ.get("RABBITMQ_EXCHANGE") or "vchain.zone"
+    # SERVICE_DRIVER_QUEUE_NAME = os.environ.get("RABBITMQ_SERVICE_DRIVER_QUEUE_NAME") or ""
+    # DRIVER_WORKER_QUEUE_NAME = os.environ.get("RABBITMQ_DRIVER_WORKER_QUEUE_NAME") or ""
+    EXCHANGE_NAME = os.environ.get("RABBITMQ_EXCHANGE_NAME") or "vchain.zone"

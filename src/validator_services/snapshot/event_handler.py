@@ -28,7 +28,7 @@ async def handle_create_snapshot_event(body, reply_to, message_id, database: Dat
                 }
                 await database.update(collection=Database.SNAPSHOTS, id=snapshot_id, modification=modification)
     except:
-        _LOGGER.debug("Exec handle_create_snapshot_event fail message_id: ", message_id)
+        _LOGGER.debug(f"Exec handle_create_snapshot_event fail message_id: {message_id}")
 
 async def handle_delete_snapshot_event(body, reply_to, message_id, database: Database):
     # Handle event response from driver
@@ -50,7 +50,7 @@ async def handle_delete_snapshot_event(body, reply_to, message_id, database: Dat
                 }
                 await database.update(collection=Database.SNAPSHOTS, id=snapshot_id, modification=modification)
     except:
-        _LOGGER.debug("Exec handle_delete_snapshot_event fail message_id: ", message_id)
+        _LOGGER.debug(f"Exec handle_delete_snapshot_event fail message_id: {message_id}")
 
 async def test_handle_request_create_snapshot(body, reply_to, message_id, database: Database):
     try:

@@ -46,7 +46,7 @@ class SnapshotHandler:
         snapshot["user_create_role"] = user_info["role"]
         snapshot["status"] = SnapshotStatus.CREATE_PENDING.name
         created_id = await self.__database.create(collection=Database.SNAPSHOTS, new_document=snapshot)
-        routing_key = "driver.snapshot.request.create"
+        routing_key = "driver.snapshot.request.create_node"
 
         message = snapshot_pb2.SnapshotCreateMessage()
         message.snapshot_id = created_id

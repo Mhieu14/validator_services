@@ -2,6 +2,7 @@ import asyncio
 from enum import Enum
 import resource
 import string
+from datetime import datetime
 from typing import Collection
 import motor.motor_asyncio as aiomotor
 from bson.objectid import ObjectId
@@ -10,13 +11,14 @@ from pymongo.errors import ServerSelectionTimeoutError
 
 from config import DBConfig
 from utils.logging import get_logger
+from utils.helper import get_current_isodate
 
 _LOGGER = get_logger(__name__)
 
 class Database:
     def __init__(self):
-        # self._mongo_uri = f"mongodb://{DBConfig.USERNAME}:{DBConfig.PASSWORD}@{DBConfig.HOST}:{DBConfig.PORT}"
-        self._mongo_uri = "mongodb+srv://user1:my-secret-pw@cluster0.wjqj9.mongodb.net/?retryWrites=true&w=majority"
+        self._mongo_uri = f"mongodb://{DBConfig.USERNAME}:{DBConfig.PASSWORD}@{DBConfig.HOST}:{DBConfig.PORT}"
+        # self._mongo_uri = "mongodb+srv://user1:my-secret-pw@cluster0.wjqj9.mongodb.net/?retryWrites=true&w=majority"
         self._dbname = DBConfig.DATABASE
         self._conn = None
 
@@ -42,7 +44,7 @@ class Database:
     }
     
     async def create(self, collection: string, new_document: dict):
-        # add datetime here
+        new_document["created_at"] = get_current_isodate()
         result = await self._conn[collection].insert_one(new_document)
         inserted_id = str(result.inserted_id)
         return inserted_id

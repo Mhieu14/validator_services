@@ -37,13 +37,13 @@ async def setup_service(app):
             "validatorservice.events.delete_node": handle_delete_node_event,
         }
 
-        event_handlers_test = {
-            "driver.snapshot.request.create": test_handle_request_create_snapshot,
-            "driver.node.request.create": test_handle_request_create_node
-        }
+        # event_handlers_test = {
+        #     "driver.snapshot.request.create": test_handle_request_create_snapshot,
+        #     "driver.node.request.create": test_handle_request_create_node
+        # }
 
         asyncio.create_task(app["broker_client"].consume("validatorservice.events", event_handlers, database))
-        asyncio.create_task(app["broker_client"].consume("test.driver.request", event_handlers_test, database))
+        # asyncio.create_task(app["broker_client"].consume("test.driver.request", event_handlers_test, database))
 
         handler = RouteHandler(database, app["broker_client"])
 
