@@ -9,8 +9,8 @@ _LOGGER = get_logger(__name__)
 
 class BrokerClient:
     def __init__(self):
-        # self.__url = f"amqp://{QueueConfig.USERNAME}:{QueueConfig.PASSWORD}@{QueueConfig.HOST}:{QueueConfig.PORT}"
-        self.__url = "amqps://adisranc:8OlrBtLg1romcuxPXCXkPJMtOLPOH-ly@armadillo.rmq.cloudamqp.com/adisranc"
+        self.__url = f"amqp://{QueueConfig.USERNAME}:{QueueConfig.PASSWORD}@{QueueConfig.HOST}:{QueueConfig.PORT}"
+        # self.__url = "amqps://adisranc:8OlrBtLg1romcuxPXCXkPJMtOLPOH-ly@armadillo.rmq.cloudamqp.com/adisranc"
         self.__connection_pool: Pool = Pool(self._get_connection, max_size=2)
         self.__channel_pool: Pool = Pool(self._get_channel, max_size=10)
         print(self.__connection_pool)
