@@ -83,6 +83,8 @@ class NodeHandler:
             raise ApiForbidden("")
         if existed_node == NodeStatus.CREATE_PENDING.name:
             raise ApiBadRequest("Can not delete creating node")
+        if existed_node in [NodeStatus.DELETE_PENDING.name, NodeStatus.DELETED.name]:
+            raise ApiBadRequest("Node is deleted or deleting")
 
         modification = { "status": NodeStatus.DELETE_PENDING.name}
         await self.__database.update(collection=Database.NODES, id=node_id, modification=modification)

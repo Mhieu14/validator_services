@@ -71,10 +71,7 @@ class SnapshotHandler:
         if user_info["role"] != "admin" and user_info["user_id"] != existed_snapshot["user_id"]:
             raise ApiForbidden("")
         if existed_snapshot["status"] in [SnapshotStatus.DELETE_PENDING.name, SnapshotStatus.DELETED.name]:
-            return success({
-                "snapshot_id": snapshot_id,
-                "status": existed_snapshot["status"]
-            })
+            raise ApiBadRequest("Snapshot is deleted or deleting")
         
         modification = { "status": SnapshotStatus.DELETE_PENDING.name}
         await self.__database.update(collection=Database.SNAPSHOTS, id=snapshot_id, modification=modification)

@@ -16,7 +16,7 @@ async def handle_create_node_event(body, reply_to, message_id, database: Databas
     node_id = body["node_id"]
     if 'error' in body:
         modification = {
-            "status": SnapshotStatus.CREATE_FAIL.name,
+            "status": NodeStatus.CREATE_FAIL.name,
             "message": body["error"]["message"],
             "detail": body["error"]["detail"],
             "create_processed_at": get_current_isodate()
@@ -24,14 +24,12 @@ async def handle_create_node_event(body, reply_to, message_id, database: Databas
         await database.update(collection=Database.NODES, id=node_id, modification=modification)
     else:
         node = await database.find_by_id(collection=Database.NODES, id=node_id)
-        if (node["status"] in [SnapshotStatus.CREATE_PENDING.name, SnapshotStatus.CREATE_FAIL.name]):
+        volume = body["volume"]
+        droplet = body["droplet"]
+        if (node["status"] in [NodeStatus.CREATE_PENDING.name, SnapshotStatus.CREATE_FAIL.name]):
             modification = {
-                "volumn_cloud_id": body["snapshot"]["id"],
-                "name": body["snapshot"]["name"],
-                "regions": body["snapshot"]["regions"],
-                "resource_id": body["snapshot"]["resource_id"],
-                "resource_type": body["snapshot"]["resource_type"],
-                "size_gigabytes": body["snapshot"]["size_gigabytes"],
+                "volume": volume,
+                "droplet": droplet,
                 "status": SnapshotStatus.CREATED.name,
                 "create_processed_at": get_current_isodate()
             }
