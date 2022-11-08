@@ -81,9 +81,10 @@ class NodeHandler:
             raise ApiBadRequest("Node is not found")
         if user_info["role"] != "admin" and user_info["user_id"] != existed_node["user_id"]:
             raise ApiForbidden("")
-        if existed_node == NodeStatus.CREATE_PENDING.name:
+        if existed_node["status"] == NodeStatus.CREATE_PENDING.name:
             raise ApiBadRequest("Can not delete creating node")
-        if existed_node in [NodeStatus.DELETE_PENDING.name, NodeStatus.DELETED.name]:
+        print(existed_node["status"])
+        if existed_node["status"] in [NodeStatus.DELETE_PENDING.name, NodeStatus.DELETED.name]:
             raise ApiBadRequest("Node is deleted or deleting")
 
         modification = { "status": NodeStatus.DELETE_PENDING.name}
