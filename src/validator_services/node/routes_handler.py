@@ -83,7 +83,6 @@ class NodeHandler:
             raise ApiForbidden("")
         if existed_node["status"] == NodeStatus.CREATE_PENDING.name:
             raise ApiBadRequest("Can not delete creating node")
-        print(existed_node["status"])
         if existed_node["status"] in [NodeStatus.DELETE_PENDING.name, NodeStatus.DELETED.name]:
             raise ApiBadRequest("Node is deleted or deleting")
 

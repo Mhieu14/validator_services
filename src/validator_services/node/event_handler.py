@@ -12,28 +12,30 @@ _LOGGER = get_logger(__name__)
 async def handle_create_node_event(body, reply_to, message_id, database: Database):
     # Handle event response from driver
     _LOGGER.debug("Receiving response about node creating process")
-    print("===================", body)
-    node_id = body["node_id"]
-    if 'error' in body:
-        modification = {
-            "status": NodeStatus.CREATE_FAIL.name,
-            "message": body["error"]["message"],
-            "detail": body["error"]["detail"],
-            "create_processed_at": get_current_isodate()
-        }
-        await database.update(collection=Database.NODES, id=node_id, modification=modification)
-    else:
-        node = await database.find_by_id(collection=Database.NODES, id=node_id)
+    try:
+        node_id = body["node_id"]
         volume = body["volume"]
         droplet = body["droplet"]
-        if (node["status"] in [NodeStatus.CREATE_PENDING.name, SnapshotStatus.CREATE_FAIL.name]):
-            modification = {
-                "volume": volume,
-                "droplet": droplet,
-                "status": SnapshotStatus.CREATED.name,
-                "create_processed_at": get_current_isodate()
-            }
-            await database.update(collection=Database.NODES, id=node_id, modification=modification)
+        fullnode_info = body["fullnode_info"]
+        process = body["process"]
+        modification = {
+            "volume": volume,
+            "droplet": droplet,
+            "fullnode_info": fullnode_info,
+            "create_process": process,
+            "create_processed_at": get_current_isodate()
+        }
+        if 'error' in body:
+            modification["status"] = NodeStatus.CREATE_FAIL.name
+            modification["message"] = body["error"]["message"]
+            modification["detail"] = body["error"]["detail"]
+        else:
+            modification["status"] = NodeStatus.CREATED.name
+        _LOGGER.debug("Done")
+        await database.update(collection=Database.NODES, id=node_id, modification=modification)
+    except:
+        _LOGGER.error(f"Exec handle_delete_node_event fail message_id: {message_id}")
+
 
 async def handle_delete_node_event(body, reply_to, message_id, database: Database):
     # Handle event response from driver
@@ -57,7 +59,7 @@ async def handle_delete_node_event(body, reply_to, message_id, database: Databas
                 }
                 await database.update(collection=Database.NODES, id=node_id, modification=modification)
     except:
-        _LOGGER.debug(f"Exec handle_delete_node_event fail message_id: {message_id}")
+        _LOGGER.error(f"Exec handle_delete_node_event fail message_id: {message_id}")
     
 async def test_handle_request_create_node(body, reply_to, message_id, database: Database):
     try:
