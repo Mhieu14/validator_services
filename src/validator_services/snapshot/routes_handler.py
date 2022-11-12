@@ -39,7 +39,9 @@ class SnapshotHandler:
         snapshot = await self.__database.find_by_id(collection=Database.SNAPSHOTS, id=snapshot_id)
         if snapshot is None:
             return ApiNotFound("Snapshot")
-        return success(snapshot)
+        return success({
+            "snapshot": snapshot
+        })
     
     async def create_snapshot(self, snapshot, user_info):
         snapshot["user_id"] = user_info["user_id"]
@@ -60,8 +62,10 @@ class SnapshotHandler:
         reply_to = "validatorservice.events.create_snapshot"
         await self.__broker_client.publish(routing_key, messageJson, reply_to)
         return success({
-            "snapshot_id": created_id,
-            "status": SnapshotStatus.CREATE_PENDING.name
+            "snapshot": {
+                "snapshot_id": created_id,
+                "status": SnapshotStatus.CREATE_PENDING.name
+            }
         })
     
     async def delete_snapshot(self, snapshot_id, user_info):
@@ -85,6 +89,8 @@ class SnapshotHandler:
         await self.__broker_client.publish(routing_key, messageJson, reply_to)
 
         return success({
-            "snapshot_id": snapshot_id,
-            "status": SnapshotStatus.DELETE_PENDING.name
+            "snapshot": {
+                "snapshot_id": snapshot_id,
+                "status": SnapshotStatus.DELETE_PENDING.name
+            }
         })

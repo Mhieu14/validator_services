@@ -75,6 +75,15 @@ class Database:
         document.pop("_id", None)
         return document
 
+    async def find_one(self, collection: string, query: dict):
+        document = await self._conn[collection].find_one(query)
+        if document is None:
+            print("Invalid dou")
+            return None 
+        document[self.COLLECTIONS_ID[collection]] = str(document["_id"])
+        document.pop("_id", None)
+        return document
+
     async def update(self, collection: string, id: string, modification: dict, unset: dict = None):
         filter = {
             "_id": ObjectId(id)

@@ -2,9 +2,10 @@ from json.decoder import JSONDecodeError
 from urllib import response
 from utils.logging import get_logger
 from snapshot.routes_handler import SnapshotHandler
-from utils.response import ApiBadRequest
+from utils.response import success, ApiBadRequest
 from project.routes_handler import ProjectHandler
 from node.routes_handler import NodeHandler
+from clouds.droplet_sizes import droplet_sizes_available
 
 _LOGGER = get_logger(__name__)
 
@@ -72,7 +73,10 @@ class RouteHandler:
     async def create_node(seft, request, user_info):
         _LOGGER.debug("Create a new node")
         node = await decode_request(request)
-        required_fields = ["name", "snapshot_id", "moniker"]
+        required_fields = ["network", "moniker"]
+        node["droplet_size"] = node.get("droplet_size", "s-1vcpu-1gb")
+        if (node["droplet_size"] not in droplet_sizes_available):
+            raise ApiBadRequest(f"droplet_size invalid")
         validate_fields(required_fields, node)
         response = await seft._node_handler.create_node(node, user_info)
         return response
@@ -86,7 +90,8 @@ class RouteHandler:
     async def get_nodes(self, request, user_info):
         skip = int(request.rel_url.query.get("offset", 0))
         limit = int(request.rel_url.query.get("limit", 20))
-        response = await self._node_handler.get_nodes(user_info, skip, limit)
+        project_id = request.rel_url.query.get("project_id")
+        response = await self._node_handler.get_nodes(user_info, project_id, skip, limit)
         return response
 
     async def get_node(self, request, user_info):
