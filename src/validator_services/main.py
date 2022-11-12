@@ -62,6 +62,7 @@ async def setup_service(app):
         app.router.add_route("GET", "/v1/nodes", handler.get_nodes)
         app.router.add_route("GET", "/v1/nodes/{node_id}", handler.get_node)
         app.router.add_route("POST", "/v1/nodes", handler.create_node)
+        app.router.add_route("POST", "/v1/nodes/{node_id}/retry", handler.retry_create_node)
         app.router.add_route("DELETE", "/v1/nodes/{node_id}", handler.delete_node)
         
         cors = aiohttp_cors.setup(

@@ -7,6 +7,7 @@ class NodeStatus(enum.Enum):
     DELETE_PENDING = 4
     DELETE_FAIL = 5
     DELETED = 6
+    CREATE_RETRYING = 7
     # UPDATE_PENDING = 6
     # UPDATE_FAIL = 7
 

@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 
 from aiohttp import web
 from utils.logging import get_logger
@@ -27,7 +28,7 @@ def convert_node_to_output(node):
         "status": node["status"],
         "message": node.get("message"),
         "address": None if fullnode_info == None else fullnode_info.get("ValidatorInfo", {}).get("Address"),
-        "public_key": None if fullnode_info == None else fullnode_info.get("PubKey", {}).get("value")
+        "public_key": None if fullnode_info == None else fullnode_info.get("ValidatorInfo", {}).get("PubKey", {}).get("value")
     }
 class NodeHandler:
     def __init__(self, database: Database, broker_client: BrokerClient):
@@ -65,6 +66,25 @@ class NodeHandler:
         return success({
             "node": convert_node_to_output(node)
         })
+
+    async def send_message_create_node(self, node, node_id, user_info, snapshot_info):
+        routing_key = "driver.node.request.create_node"
+        message = node_pb2.NodeCreateMessage()
+        message.node_id = node_id
+        message.node.description = node.get("description", "")
+        message.node.size_gigabytes = node.get("size_gigabytes", 0)
+        message.node.tags.extend(node.get("tags", []))
+        message.node.snapshot_cloud_id = snapshot_info["snapshot_cloud_id"]
+        message.node.file_system_type = node.get("file_system_type", "")
+        message.node.region = node.get("region", "")
+        message.node.moniker = node["moniker"]
+        message.node.network = node["network"]
+        message.node.droplet_size = node["droplet_size"]
+        message.user.user_id = user_info["user_id"]
+        messageJson = convertProtobufToJSON(message)
+        reply_to = "validatorservice.events.create_node"
+        await self.__broker_client.publish(routing_key, messageJson, reply_to)
+        return
     
     async def create_node(self, node, user_info):
         snapshot_info = None
@@ -79,27 +99,13 @@ class NodeHandler:
         if ("status" not in snapshot_info) or (snapshot_info["status"] != SnapshotStatus.CREATED.name):
             raise ApiBadRequest("Snapshot is creating or created fail")
 
+        node["snapshot_id"] = snapshot_info["snapshot_id"]
         node["network"] = snapshot_info["network"]
         node["user_id"] = user_info["user_id"]
         node["status"] = NodeStatus.CREATE_PENDING.name
         created_id = await self.__database.create(collection=Database.NODES, new_document=node)
 
-        routing_key = "driver.node.request.create_node"
-        message = node_pb2.NodeCreateMessage()
-        message.node_id = created_id
-        message.node.description = node.get("description", "")
-        message.node.size_gigabytes = node.get("size_gigabytes", 0)
-        message.node.tags.extend(node.get("tags", []))
-        message.node.snapshot_cloud_id = snapshot_info["snapshot_cloud_id"]
-        message.node.file_system_type = node.get("file_system_type", "")
-        message.node.region = node.get("region", "")
-        message.node.moniker = node["moniker"]
-        message.node.network = node["network"]
-        message.node.droplet_size = node["droplet_size"]
-        message.user.user_id = user_info["user_id"]
-        messageJson = convertProtobufToJSON(message)
-        reply_to = "validatorservice.events.create_node"
-        await self.__broker_client.publish(routing_key, messageJson, reply_to)
+        await self.send_message_create_node(node=node, node_id=created_id, user_info=user_info, snapshot_info=snapshot_info)
         return success({
             "node": {
                 "node_id": created_id,
@@ -107,6 +113,33 @@ class NodeHandler:
             }
         })
     
+    async def retry_create_node(self, node_id, user_info):
+        existed_node = await self.__database.find_by_id(collection=Database.NODES, id=node_id)
+        if existed_node is None:
+            raise ApiBadRequest("Node is not found")
+        if existed_node["status"] != NodeStatus.CREATE_FAIL.name:
+            raise ApiBadRequest("Only create fail node allow to retry create")
+        if "create_process" not in existed_node:
+            snapshot_id = existed_node["snapshot_id"]
+            snapshot_info = await self.__database.find_by_id(collection=Database.SNAPSHOTS, id=snapshot_id)
+            await self.send_message_create_node(node=existed_node, node_id=node_id, user_info=user_info, snapshot_info=snapshot_info)
+        else:
+            routing_key = "driver.node.request.retry_create_node"
+            message = {
+                "node_id": node_id,
+                "user": {
+                    "user_id": user_info["user_id"]
+                }
+            }
+            reply_to = "validatorservice.events.create_node"
+            await self.__broker_client.publish(routing_key, json.dumps(message), reply_to)
+        return success({
+            "node": {
+                "node_id": node_id,
+                "status": NodeStatus.CREATE_RETRYING.name
+            }
+        })
+
     async def delete_node(self, node_id, user_info):
         existed_node = await self.__database.find_by_id(collection=Database.NODES, id=node_id)
         if existed_node is None:

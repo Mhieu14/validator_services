@@ -81,6 +81,12 @@ class RouteHandler:
         response = await seft._node_handler.create_node(node, user_info)
         return response
 
+    async def retry_create_node(seft, request, user_info):
+        node_id = request.match_info.get("node_id", "")
+        _LOGGER.debug(f"Retry create node: {node_id}")
+        response = await seft._node_handler.retry_create_node(node_id=node_id, user_info=user_info)
+        return response
+
     async def delete_node(seft, request, user_info):
         node_id = request.match_info.get("node_id", "")
         _LOGGER.debug(f"Delete a node: {node_id}")
