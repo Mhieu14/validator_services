@@ -17,6 +17,9 @@ async def self_authorize(request, handler):
         if request.path == '/v1/healthz':
             resp = await handler(request)
             return resp
+        elif request.path.startswith('/v1/doc'):
+            resp = await handler(request)
+            return resp
         else:
             token = request.headers.get("AUTHORIZATION")
             if token is None:

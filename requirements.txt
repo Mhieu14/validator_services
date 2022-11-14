@@ -7,7 +7,7 @@ async-timeout==3.0.1
 attrs==20.2.0
 chardet==3.0.4
 gunicorn==19.7.1
-kombu
+kombu==5.0.2
 motor==2.2.0
 multidict==4.7.6
 pamqp==2.3.0
@@ -16,5 +16,7 @@ pymongo==3.11.0
 PyYAML==5.1.2
 uvloop==0.14.0
 requests==2.25.1
-dnspython
-google-api-python-client
+dnspython==2.2.1
+google-api-python-client==2.65.0
+aiohttp-swagger==1.0.16
+python-dotenv==0.21.0

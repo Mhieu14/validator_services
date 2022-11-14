@@ -23,6 +23,12 @@ class RouteHandler:
         validate_fields(required_fields, project)
         response = await self._project_handler.create_project(project, user_info)
         return response
+    
+    async def delete_project(seft, request, user_info):
+        _LOGGER.debug("Delete a project")
+        project_id = request.match_info.get("project_id", "")
+        response = await seft._project_handler.delete_project(project_id, user_info)
+        return response
 
     async def get_projects(self, request, user_info):
         _LOGGER.debug(f"Get all networks of the user: {user_info['user_id']}")
@@ -36,9 +42,8 @@ class RouteHandler:
         # body = await decode_request(request)
         skip = int(request.rel_url.query.get("offset", 0))
         limit = int(request.rel_url.query.get("limit", 20))
-        print(skip, limit)
         _LOGGER.debug(f"Get project {project_id} information")
-        response = await self._project_handler.get_project(project_id, skip, limit)
+        response = await self._project_handler.get_project(project_id, skip, limit, user_info)
         return response
 
     # snapshots
@@ -73,9 +78,8 @@ class RouteHandler:
     async def create_node(seft, request, user_info):
         _LOGGER.debug("Create a new node")
         node = await decode_request(request)
-        required_fields = ["network", "moniker"]
-        node["droplet_size"] = node.get("droplet_size", "s-1vcpu-1gb")
-        if (node["droplet_size"] not in droplet_sizes_available):
+        required_fields = ["network", "moniker", "project_id"]
+        if ("droplet_size" in node and node["droplet_size"] not in droplet_sizes_available):
             raise ApiBadRequest(f"droplet_size invalid")
         validate_fields(required_fields, node)
         response = await seft._node_handler.create_node(node, user_info)
@@ -103,7 +107,7 @@ class RouteHandler:
     async def get_node(self, request, user_info):
         node_id = request.match_info.get("node_id", "")
         _LOGGER.debug(f"Get node {node_id} information")
-        response = await self._node_handler.get_node(node_id=node_id)
+        response = await self._node_handler.get_node(node_id=node_id, user_info=user_info)
         return response
 
 async def decode_request(request):

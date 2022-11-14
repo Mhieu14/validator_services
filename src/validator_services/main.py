@@ -5,6 +5,7 @@ import sys
 import os
 
 from aiohttp import web, ClientSession
+from aiohttp_swagger import setup_swagger
 from config import Config
 from utils.logging import get_logger
 from database import Database
@@ -51,6 +52,7 @@ async def setup_service(app):
         app.router.add_route("GET", "/v1/projects", handler.get_projects)
         app.router.add_route("GET", "/v1/projects/{project_id}", handler.get_project)
         app.router.add_route("POST", "/v1/projects", handler.create_project)
+        app.router.add_route("DELETE", "/v1/projects/{project_id}", handler.delete_project)
 
         # snapshot
         app.router.add_route("GET", "/v1/snapshots", handler.get_snapshots)
@@ -89,5 +91,7 @@ async def cleanup_resources(app):
 
 app.on_startup.append(setup_service)
 app.on_cleanup.append(cleanup_resources)
+
+setup_swagger(app, swagger_url="/v1/doc", swagger_from_file="swagger.yaml")
 
 web.run_app(app)

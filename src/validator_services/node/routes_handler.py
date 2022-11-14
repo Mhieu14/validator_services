@@ -36,9 +36,10 @@ class NodeHandler:
         self.__broker_client: BrokerClient = broker_client
 
     async def get_nodes_data(self, user_info={}, project_id=None, skip=None, limit=None):
-        query = {}
-        if "user_id" in user_info: 
-            query["user_id"] = user_info["user_id"]
+        query = {
+            "user_id": user_info["user_id"],
+            "status": {"$ne": NodeStatus.DELETED.name}
+        }
         if project_id is not None:
             query["project_id"] = project_id
         nodes = await self.__database.find(collection=Database.NODES, query=query, skip=skip, limit=limit)
@@ -59,10 +60,12 @@ class NodeHandler:
         nodes_data = await self.get_nodes_data(user_info, project_id, skip, limit)
         return success(nodes_data)
 
-    async def get_node(self, node_id):
+    async def get_node(self, node_id, user_info):
         node = await self.__database.find_by_id(collection=Database.NODES, id=node_id)
         if node is None:
             return ApiNotFound("Node")
+        if user_info["role"] != "admin" and user_info["user_id"] != node["user_id"]:
+            raise ApiForbidden("")
         return success({
             "node": convert_node_to_output(node)
         })
@@ -79,14 +82,19 @@ class NodeHandler:
         message.node.region = node.get("region", "")
         message.node.moniker = node["moniker"]
         message.node.network = node["network"]
-        message.node.droplet_size = node["droplet_size"]
         message.user.user_id = user_info["user_id"]
+        if ("droplet_size" in node):
+            message.node.droplet_size = node.get("droplet_size")
         messageJson = convertProtobufToJSON(message)
         reply_to = "validatorservice.events.create_node"
         await self.__broker_client.publish(routing_key, messageJson, reply_to)
         return
     
     async def create_node(self, node, user_info):
+        project_info = await self.__database.find_by_id(collection=Database.PROJECTS, id=node["project_id"])
+        if project_info is None:
+            raise ApiBadRequest("Project is not found")
+
         snapshot_info = None
         if ("snapshot_id" in node):
             snapshot_id = node["snapshot_id"]
@@ -117,8 +125,14 @@ class NodeHandler:
         existed_node = await self.__database.find_by_id(collection=Database.NODES, id=node_id)
         if existed_node is None:
             raise ApiBadRequest("Node is not found")
+        if user_info["role"] != "admin" and user_info["user_id"] != existed_node["user_id"]:
+            raise ApiForbidden("")
         if existed_node["status"] != NodeStatus.CREATE_FAIL.name:
             raise ApiBadRequest("Only create fail node allow to retry create")
+
+        modification = { "status": NodeStatus.CREATE_RETRYING.name}
+        await self.__database.update(collection=Database.NODES, id=node_id, modification=modification)
+
         if "create_process" not in existed_node:
             snapshot_id = existed_node["snapshot_id"]
             snapshot_info = await self.__database.find_by_id(collection=Database.SNAPSHOTS, id=snapshot_id)

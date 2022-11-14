@@ -1,0 +1,504 @@
+swagger: '2.0'
+
+schemes:
+  - http
+  # - https
+
+# host: 0.0.0.0:8080
+
+basePath: /v1
+
+info:
+  description: |
+    This is an **example** API to demonstrate features of OpenAPI specification
+  version: '1.0.0'
+  title: Validator Service
+
+produces:
+  - application/json
+
+consumes:
+  - application/json
+  - application/xml
+
+tags:
+  - name: Projects
+    description: API relate to projects
+  - name: Nodes
+    description: API relate to nodes
+  - name: Snapshots
+    description: API relate to snapshots
+
+securityDefinitions:
+  api_key:
+    type: apiKey
+    in: header
+    name: Authorization
+
+paths:
+  '/projects':
+    get:
+      tags:
+        - Projects
+      summary: Get list projects
+      parameters:
+        - name: offset
+          in: query
+          description: offset
+          type: integer
+        - name: limit
+          in: query
+          description: limit
+          type: integer
+      responses:
+        '200':
+          description: Success
+          schema:
+            $ref: '#/definitions/ProjectsSuccessRes'
+    post:
+      tags:
+        - Projects
+      summary: Create a project
+      parameters:
+        - in: body
+          name: body
+          schema:
+            $ref: '#/definitions/ProjectCreateModel'
+      responses:
+        '200':
+          description: Success
+          schema:
+            allOf: 
+            - $ref: '#/definitions/BaseSuccessRes'
+            - type: object
+              properties:
+                data:
+                  properties:
+                    project:
+                      type: object
+                      properties:
+                        project_id:
+                          type: string
+                          example: 636f08127551020848f60448
+                        status:
+                          type: string
+                          example: CREATED
+  '/projects/{project_id}':
+    get:
+      tags:
+        - Projects
+      summary: Get detail project
+      parameters:
+        - name: project_id
+          in: path
+          description: id of project
+          type: string
+        - name: offset
+          in: query
+          description: offset
+          type: integer
+        - name: limit
+          in: query
+          description: limit
+          type: integer
+      responses:
+        '200':
+          description: Success
+          schema:
+            $ref: '#/definitions/ProjectSuccessRes'
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+    delete:
+      tags:
+        - Projects
+      summary: Delete project
+      parameters:
+        - name: project_id
+          in: path
+          description: id of project
+          type: string
+      responses:
+        '200':
+          description: Success
+          schema:
+            allOf: 
+            - $ref: '#/definitions/BaseSuccessRes'
+            - type: object
+              properties:
+                data:
+                  properties:
+                    project:
+                      type: object
+                      properties:
+                        project_id:
+                          type: string
+                          example: 636f08127551020848f60448
+                        status:
+                          type: string
+                          example: DELETED
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+  '/nodes':
+    get:
+      tags:
+        - Nodes
+      summary: Get list nodes
+      parameters:
+        - name: project_id
+          in: query
+          description: project_id
+          type: string
+        - name: offset
+          in: query
+          description: offset
+          type: integer
+        - name: limit
+          in: query
+          description: limit
+          type: integer
+      responses:
+        '200':
+          description: Success
+          schema:
+            $ref: '#/definitions/NodesSuccessRes'
+    post:
+      tags:
+        - Nodes
+      summary: Create a project
+      parameters:
+        - in: body
+          name: body
+          schema:
+            $ref: '#/definitions/NodeCreateModel'
+      responses:
+        '200':
+          description: Success
+          schema:
+            allOf: 
+            - $ref: '#/definitions/BaseSuccessRes'
+            - type: object
+              properties:
+                data:
+                  properties:
+                    node:
+                      type: object
+                      properties:
+                        node_id:
+                          type: string
+                          example: 636f08127551020848f60448
+                        status:
+                          type: string
+                          example: CREATE_PENDING
+  '/nodes/{node_id}':
+    get:
+      tags:
+        - Nodes
+      summary: Get detail node
+      parameters:
+        - name: node_id
+          in: path
+          description: id of node
+          type: string
+      responses:
+        '200':
+          description: Success
+          schema:
+            $ref: '#/definitions/NodeSuccessRes'
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+    delete:
+      tags:
+        - Nodes
+      summary: Delete node
+      parameters:
+        - name: node_id
+          in: path
+          description: id of node
+          type: string
+      responses:
+        '200':
+          description: Success
+          schema:
+            allOf: 
+            - $ref: '#/definitions/BaseSuccessRes'
+            - type: object
+              properties:
+                data:
+                  properties:
+                    node:
+                      type: object
+                      properties:
+                        node_id:
+                          type: string
+                          example: 636f08127551020848f60448
+                        status:
+                          type: string
+                          example: DELETE_PENDING
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+  '/nodes/{node_id}/retry':
+    post:
+      tags:
+        - Nodes
+      summary: Retry create node
+      parameters:
+        - name: node_id
+          in: path
+          description: id of node
+          type: string
+      responses:
+        '200':
+          description: Success
+          schema:
+            allOf: 
+            - $ref: '#/definitions/BaseSuccessRes'
+            - type: object
+              properties:
+                data:
+                  properties:
+                    node:
+                      type: object
+                      properties:
+                        node_id:
+                          type: string
+                          example: 636f08127551020848f60448
+                        status:
+                          type: string
+                          example: CREATE_RETRYING
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+  '/snapshots':
+    get:
+      tags:
+        - Snapshots
+      summary: Get list snapshots
+      parameters:
+        - name: offset
+          in: query
+          description: offset
+          type: integer
+        - name: limit
+          in: query
+          description: limit
+          type: integer
+      responses:
+        '200':
+          description: Success
+          schema:
+            $ref: '#/definitions/SnapshotSuccessRes'
+          
+definitions:
+  BaseSuccessRes:
+    type: object
+    properties:
+      data:
+        type: object
+      status:
+        type: string
+        example: 'success'
+  MetaModel:
+    type: object
+    properties:
+      offset: 
+        type: integer
+        example: 0
+      limit: 
+        type: integer
+        example: 20
+      total:
+        type: integer
+        example: 10
+  ProjectsSuccessRes:
+    allOf: 
+      - $ref: '#/definitions/BaseSuccessRes'
+      - type: object
+        properties:
+          data:
+            properties:
+              projects:
+                type: array
+                items:
+                  $ref: '#/definitions/ProjectModel'
+              meta:
+                $ref: '#/definitions/MetaModel'
+  ProjectSuccessRes:
+    allOf: 
+      - $ref: '#/definitions/BaseSuccessRes'
+      - type: object
+        properties:
+          data:
+            properties:
+              project:
+                $ref: '#/definitions/ProjectDetailModel'
+              meta:
+                $ref: '#/definitions/MetaModel'
+  NodesSuccessRes:
+    allOf: 
+      - $ref: '#/definitions/BaseSuccessRes'
+      - type: object
+        properties:
+          data:
+            properties:
+              nodes:
+                type: array
+                items:
+                  $ref: '#/definitions/NodeModel'
+              meta:
+                $ref: '#/definitions/MetaModel'
+  NodeSuccessRes:
+    allOf: 
+      - $ref: '#/definitions/BaseSuccessRes'
+      - type: object
+        properties:
+          data:
+            properties:
+              node:
+                $ref: '#/definitions/NodeModel'
+              meta:
+                $ref: '#/definitions/MetaModel'
+  SnapshotSuccessRes:
+    allOf: 
+      - $ref: '#/definitions/BaseSuccessRes'
+      - type: object
+        properties:
+          data:
+            properties:
+              nodes:
+                type: array
+                items:
+                  $ref: '#/definitions/SnapshotModel'
+              meta:
+                $ref: '#/definitions/MetaModel'
+  ProjectModel:
+    type: object
+    properties:
+      project_id:
+        description: project_id
+        type: string
+        example: 636f08127551020848f60448
+      status:
+        description: status
+        type: string
+        example: CREATED
+        enum:
+          - CREATED
+          - DELETED
+      name:
+        description: name
+        type: string
+        example: A new Joe's project
+      description:
+        description: description
+        type: string
+        example: Project description
+      created_at:
+        description: created_at
+        type: string
+        example: '2022-11-14T15:56:31.137268'
+  ProjectDetailModel:
+    allOf:
+      - $ref: '#/definitions/ProjectModel'
+      - type: object
+        properties:
+          nodes:
+            type: array
+            items:
+              $ref: '#/definitions/NodeModel'
+  ProjectCreateModel:
+    type: object
+    properties:
+      name:
+        description: name
+        type: string
+        example: A new Joe's project
+      description:
+        description: description
+        type: string
+        example: Project description
+  NodeModel:
+    type: object
+    properties:
+      project_id:
+        description: project_id
+        type: string
+        example: 636f08127551020848f60448
+      node_id:
+        description: node_id
+        type: string
+        example: 636f26a15b30824b7b4fb9eb
+      network:
+        description: network
+        type: string
+        example: darchub
+      moniker:
+        description: moniker
+        type: string
+        example: Moniker name of node
+      status:
+        description: status
+        type: string
+        example: CREATED
+        enum:
+          - CREATE_PENDING
+          - CREATE_FAIL
+          - CREATED
+          - DELETE_PENDING
+          - DELETE_FAIL
+          - DELETED
+          - CREATE_RETRYING
+      message:
+        description: error message if create of delete fail
+        type: string
+        example: "Unknown error"
+      address:
+        description: address
+        type: string
+        example: 786FF0F16AD8373CE590C823060B276CF53575BC
+      public_key:
+        description: public_key
+        type: string
+        example: /+khIa5wW0bQK3yl/4DVB89lFpbCAvj0ZcVGIJWx/G8=
+  NodeCreateModel:
+    type: object
+    properties:
+      project_id:
+        description: project_id
+        type: string
+        example: 636f08127551020848f60448
+      network:
+        description: network
+        type: string
+        example: darchub
+      moniker:
+        description: moniker
+        type: string
+        example: Moniker name of node
+      snapshot_id:
+        description: snapshot_id
+        type: string
+        example: 636b644e7e95a228fa59cfa5
+  SnapshotModel:
+    type: object
+    properties:
+      snapshot_id:
+        description: snapshot_id
+        type: string
+        example: 636f08127551020848f60448
+      name:
+        description: name
+        type: string
+        example: 636f26a15b30824b7b4fb9eb
+      network:
+        description: network
+        type: string
+        example: darchub

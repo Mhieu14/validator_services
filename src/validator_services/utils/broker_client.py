@@ -13,8 +13,6 @@ class BrokerClient:
         # self.__url = "amqps://adisranc:8OlrBtLg1romcuxPXCXkPJMtOLPOH-ly@armadillo.rmq.cloudamqp.com/adisranc"
         self.__connection_pool: Pool = Pool(self._get_connection, max_size=2)
         self.__channel_pool: Pool = Pool(self._get_channel, max_size=10)
-        print(self.__connection_pool)
-        print(self.__channel_pool)
 
     async def _get_connection(self):
         return await aio_pika.connect_robust(self.__url)

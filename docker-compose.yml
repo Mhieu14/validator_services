@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  core-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: validator_service
+    restart: always
+    volumes:
+      - .:/validator_service
+    environment:
+      # use in code
+      - CONFIG_FILE=product.yaml
+    ports:
+      - 8080:8080
+    command: bash -c "cd src/validator_services && python3 main.py"
