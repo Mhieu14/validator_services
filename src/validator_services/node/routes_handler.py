@@ -37,10 +37,11 @@ class NodeHandler:
         self.__broker_client: BrokerClient = broker_client
 
     async def get_nodes_data(self, user_info={}, project_id=None, skip=None, limit=None):
-        query = {
-            "user_id": user_info["user_id"],
+        query = {   
             "status": {"$ne": NodeStatus.DELETED.name}
         }
+        if "user_id" in user_info:
+            query["user_id"] = user_info["user_id"]
         if project_id is not None:
             query["project_id"] = project_id
         nodes = await self.__database.find(collection=Database.NODES, query=query, skip=skip, limit=limit)

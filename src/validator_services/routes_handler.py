@@ -31,7 +31,7 @@ class RouteHandler:
         return response
 
     async def get_projects(self, request, user_info):
-        _LOGGER.debug(f"Get all networks of the user: {user_info['user_id']}")
+        _LOGGER.debug(f"Get all nodes of the user: {user_info['user_id']}")
         skip = int(request.rel_url.query.get("offset", 0))
         limit = int(request.rel_url.query.get("limit", 20))
         response = await self._project_handler.get_projects(user_info, skip, limit)
