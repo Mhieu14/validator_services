@@ -93,6 +93,7 @@ paths:
           in: path
           description: id of project
           type: string
+          required: true
         - name: offset
           in: query
           description: offset
@@ -119,6 +120,7 @@ paths:
           in: path
           description: id of project
           type: string
+          required: true
       responses:
         '200':
           description: Success
@@ -421,6 +423,7 @@ definitions:
         description: name
         type: string
         example: A new Joe's project
+        required: true
       description:
         description: description
         type: string
@@ -475,14 +478,17 @@ definitions:
         description: project_id
         type: string
         example: 636f08127551020848f60448
+        required: true
       network:
-        description: network
+        description: network, lay network tu api get snapshots
         type: string
         example: darchub
+        required: true
       moniker:
         description: moniker
         type: string
         example: Moniker name of node
+        required: true
       snapshot_id:
         description: snapshot_id
         type: string
