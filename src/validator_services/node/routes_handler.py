@@ -27,6 +27,7 @@ def convert_node_to_output(node):
         "moniker": node["moniker"],
         "status": node["status"],
         "message": node.get("message"),
+        "created_at": node.get("created_at"),
         "address": None if fullnode_info == None else fullnode_info.get("ValidatorInfo", {}).get("Address"),
         "public_key": None if fullnode_info == None else fullnode_info.get("ValidatorInfo", {}).get("PubKey", {}).get("value")
     }
