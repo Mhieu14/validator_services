@@ -50,7 +50,7 @@ class RouteHandler:
     async def create_snapshot(seft, request, user_info):
         _LOGGER.debug("Create a new snapshot")
         snapshot = await decode_request(request)
-        required_fields = ["volumn_cloud_id", "name", "network", "droplet_cloud_id"]
+        required_fields = ["volume_cloud_id", "name", "network"]
         validate_fields(required_fields, snapshot)
         response = await seft._snapshot_handler.create_snapshot(snapshot, user_info)
         return response
@@ -59,6 +59,12 @@ class RouteHandler:
         _LOGGER.debug("Delete a snapshot")
         snapshot_id = request.match_info.get("snapshot_id", "")
         response = await seft._snapshot_handler.delete_snapshot(snapshot_id, user_info)
+        return response
+
+    async def update_snapshot(seft, request, user_info):
+        _LOGGER.debug("Update a snapshot")
+        snapshot_id = request.match_info.get("snapshot_id", "")
+        response = await seft._snapshot_handler.update_snapshot(snapshot_id, user_info)
         return response
 
     async def get_snapshots(self, request, user_info):

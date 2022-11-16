@@ -5,13 +5,12 @@ from database import Database
 from node.status import NodeStatus
 from utils.broker_client import BrokerClient
 from utils.helper import get_current_isodate
-from snapshot.status import SnapshotStatus
 
 _LOGGER = get_logger(__name__)
 
 async def handle_create_node_event(body, reply_to, message_id, database: Database):
     # Handle event response from driver
-    _LOGGER.debug("Receiving response about node creating process")
+    _LOGGER.debug("Receiving response about node creating node")
     try:
         node_id = body["node_id"]
         volume = body["volume"]
@@ -39,7 +38,7 @@ async def handle_create_node_event(body, reply_to, message_id, database: Databas
 
 async def handle_delete_node_event(body, reply_to, message_id, database: Database):
     # Handle event response from driver
-    _LOGGER.debug("Receiving response about node deleting process")
+    _LOGGER.debug("Receiving response about node deleting node")
     try:
         node_id = body["node_id"]
         if 'error' in body:

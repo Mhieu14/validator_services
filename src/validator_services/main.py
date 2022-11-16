@@ -13,8 +13,8 @@ from routes_handler import RouteHandler
 from utils.broker_client import BrokerClient
 from utils.middleware import self_authorize
 
-from snapshot.event_handler import handle_create_snapshot_event, handle_delete_snapshot_event, test_handle_request_create_snapshot
-from node.event_handler import handle_create_node_event, handle_delete_node_event, test_handle_request_create_node
+from snapshot.event_handler import handle_create_snapshot_event, handle_delete_snapshot_event, handle_update_snapshot_event
+from node.event_handler import handle_create_node_event, handle_delete_node_event
 
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
@@ -34,6 +34,7 @@ async def setup_service(app):
         event_handlers = {
             "validatorservice.events.create_snapshot": handle_create_snapshot_event,
             "validatorservice.events.delete_snapshot": handle_delete_snapshot_event,
+            "validatorservice.events.update_snapshot": handle_update_snapshot_event,
             "validatorservice.events.create_node": handle_create_node_event,
             "validatorservice.events.delete_node": handle_delete_node_event,
         }
@@ -59,6 +60,7 @@ async def setup_service(app):
         app.router.add_route("GET", "/v1/snapshots/{snapshot_id}", handler.get_snapshot)
         app.router.add_route("POST", "/v1/snapshots", handler.create_snapshot)
         app.router.add_route("DELETE", "/v1/snapshots/{snapshot_id}", handler.delete_snapshot)
+        app.router.add_route("POST", "/v1/snapshots/{snapshot_id}/update", handler.update_snapshot)
 
         # node
         app.router.add_route("GET", "/v1/nodes", handler.get_nodes)
