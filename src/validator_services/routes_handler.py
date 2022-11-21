@@ -55,6 +55,13 @@ class RouteHandler:
         response = await seft._snapshot_handler.create_snapshot(snapshot, user_info)
         return response
 
+    async def update_info_snapshot(seft, request, user_info):
+        _LOGGER.debug("Update info a snapshot")
+        snapshot_id = request.match_info.get("snapshot_id", "")
+        body = await decode_request(request)
+        response = await seft._snapshot_handler.update_info_snapshot(snapshot_id, body, user_info)
+        return response
+
     async def delete_snapshot(seft, request, user_info):
         _LOGGER.debug("Delete a snapshot")
         snapshot_id = request.match_info.get("snapshot_id", "")

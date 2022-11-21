@@ -14,6 +14,8 @@
 # ------------------------------------------------------------------------------
 
 import json
+import functools
+from datetime import datetime, date
 
 from aiohttp.web import HTTPError
 from aiohttp.web import json_response
@@ -85,6 +87,12 @@ class ApiForbidden(_ApiError):
         self.message = 'Forbidden: ' + message
         super().__init__()
 
+def json_serial(obj):
+    if isinstance(obj, (datetime, date)):
+        return obj.strftime('%Y-%m-%dT%H:%M:%SZ')
+    raise TypeError ("Type %s not serializable" % type(obj))
+
+custom_json_dumps = functools.partial(json.dumps, default=json_serial)
 
 def success(response_data, status=200, **kwargs):
-    return json_response({**kwargs, "data": response_data, "status": "success"}, status=status)
+    return json_response({**kwargs, "data": response_data, "status": "success"}, status=status, dumps=custom_json_dumps)

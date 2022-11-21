@@ -1,0 +1,29 @@
+FROM python:3.8 as final
+# Enable unbuffered logging
+ENV PYTHONUNBUFFERED=1
+
+# Authorize SSH Host
+
+RUN apt-get -qq update \
+    && apt-get install -y --no-install-recommends \
+        wget
+RUN apt-get update && \
+    apt-get install -y git && \ 
+    apt-get install -y curl 
+
+RUN apt-get update && \
+    apt-get install -y openssh-server
+
+# COPY requirements.txt ./
+
+# RUN apt-get install -y build-essential libssl-dev libffi-dev python-dev
+
+WORKDIR /node_cron_worker
+
+COPY . /node_cron_worker
+
+RUN pip3 install -r requirements.txt
+
+# EXPOSE 8080
+
+# CMD make worker

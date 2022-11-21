@@ -251,6 +251,7 @@ paths:
       tags:
         - Nodes
       summary: Retry create node
+      
       parameters:
         - name: node_id
           in: path
@@ -297,8 +298,146 @@ paths:
         '200':
           description: Success
           schema:
+            $ref: '#/definitions/SnapshotsSuccessRes'
+    post:
+      tags:
+        - Snapshots
+      summary: Create snapshot
+      parameters:
+        - in: body
+          name: body
+          schema:
+            $ref: '#/definitions/SnapshotCreateModel'
+      responses:
+        '200':
+          description: Success
+          schema:
+            allOf: 
+            - $ref: '#/definitions/BaseSuccessRes'
+            - type: object
+              properties:
+                data:
+                  properties:
+                    snapshot:
+                      type: object
+                      properties:
+                        node_id:
+                          type: string
+                          example: 636f08127551020848f60448
+                        status:
+                          type: string
+                          example: CREATE_PENDING
+        '403':
+          description: Forbidden
+        '400':
+          description: Bad Request
+  '/snapshots/{snapshot_id}':
+    get:
+      tags:
+        - Snapshots
+      summary: Get detail snapshot
+      parameters:
+        - name: snapshot_id
+          in: path
+          description: id of snapshot
+          type: string
+      responses:
+        '200':
+          description: Success
+          schema:
             $ref: '#/definitions/SnapshotSuccessRes'
-          
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+    put:
+      tags:
+        - Snapshots
+      summary: Update snapshot info
+      parameters:
+        - name: snapshot_id
+          in: path
+          description: id of snapshot
+          type: string
+        - in: body
+          name: body
+          schema:
+            $ref: '#/definitions/SnapshotCreateModel'
+      responses:
+        '200':
+          description: Success
+          schema:
+            $ref: '#/definitions/SnapshotSuccessRes'
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+    delete:
+      tags:
+        - Snapshots
+      summary: Delete snapshot
+      parameters:
+        - name: snapshot_id
+          in: path
+          description: id of snapshot
+          type: string
+      responses:
+        '200':
+          description: Success
+          schema:
+            allOf: 
+            - $ref: '#/definitions/BaseSuccessRes'
+            - type: object
+              properties:
+                data:
+                  properties:
+                    snapshot:
+                      type: object
+                      properties:
+                        node_id:
+                          type: string
+                          example: 636f08127551020848f60448
+                        status:
+                          type: string
+                          example: DELETE_PENDING
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+  '/snapshots/{snapshot_id}/update':
+    post:
+      tags:
+        - Snapshots
+      summary: Update a snapshot
+      parameters:
+        - name: snapshot_id
+          in: path
+          description: id of snapshot
+          type: string
+      responses:
+        '200':
+          description: Success
+          schema:
+            allOf: 
+            - $ref: '#/definitions/BaseSuccessRes'
+            - type: object
+              properties:
+                data:
+                  properties:
+                    snapshot:
+                      type: object
+                      properties:
+                        node_id:
+                          type: string
+                          example: 636f08127551020848f60448
+                        update_status:
+                          type: string
+                          example: UPDATE_PENDING
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+
 definitions:
   BaseSuccessRes:
     type: object
@@ -375,12 +514,43 @@ definitions:
         properties:
           data:
             properties:
-              nodes:
+              snapshot:
+                $ref: '#/definitions/SnapshotModel'
+              meta:
+                $ref: '#/definitions/MetaModel'
+  SnapshotsSuccessRes:
+    allOf: 
+      - $ref: '#/definitions/BaseSuccessRes'
+      - type: object
+        properties:
+          data:
+            properties:
+              snapshots:
                 type: array
                 items:
                   $ref: '#/definitions/SnapshotModel'
               meta:
                 $ref: '#/definitions/MetaModel'
+  SnapshotCreateModel:
+    type: object
+    properties:
+      name:
+        description: name
+        type: string
+        example: snapshot-knstl-14
+        required: true
+      volume_cloud_id:
+        description: volume_cloud_id
+        type: string
+        example: 5b4c6ae2-6495-11ed-860b-0a58ac14a3db
+      network:
+        description: network
+        type: string
+        example: darchub
+      cron_time:
+        description: cron_time
+        type: string
+        example: 39 9 * * *
   ProjectModel:
     type: object
     properties:

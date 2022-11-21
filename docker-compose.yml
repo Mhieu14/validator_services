@@ -15,3 +15,13 @@ services:
     ports:
       - 8080:8080
     command: bash -c "cd src/validator_services && python3 main.py"
+
+  node_cron_worker:
+    build:
+      context: .
+      dockerfile: DockerCronfile
+    container_name: node_cron_worker
+    restart: always
+    volumes:
+      - .:/node_cron_worker
+    command: bash -c "cd src/validator_services && python3 cron.py"

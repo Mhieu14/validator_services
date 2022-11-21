@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 
 from utils.logging import get_logger
 from database import Database
@@ -22,7 +23,7 @@ async def handle_create_node_event(body, reply_to, message_id, database: Databas
             "droplet": droplet,
             "fullnode_info": fullnode_info,
             "create_process": process,
-            "create_processed_at": get_current_isodate()
+            "create_processed_at": datetime.now(tz=timezone.utc)
         }
         if 'error' in body:
             modification["status"] = NodeStatus.CREATE_FAIL.name
@@ -46,7 +47,7 @@ async def handle_delete_node_event(body, reply_to, message_id, database: Databas
                 "status": NodeStatus.DELETE_FAIL.name,
                 "message": body["error"]["message"],
                 "detail": body["error"]["detail"],
-                "delete_processed_at": get_current_isodate()
+                "delete_processed_at": datetime.now(tz=timezone.utc)
             }
             await database.update(collection=Database.NODES, id=node_id, modification=modification)
         else:
@@ -54,7 +55,7 @@ async def handle_delete_node_event(body, reply_to, message_id, database: Databas
             if (node["status"] in [NodeStatus.DELETE_PENDING.name, NodeStatus.DELETE_FAIL.name]):
                 modification = {
                     "status": NodeStatus.DELETED.name,
-                    "delete_processed_at": get_current_isodate()
+                    "delete_processed_at": datetime.now(tz=timezone.utc)
                 }
                 await database.update(collection=Database.NODES, id=node_id, modification=modification)
     except:

@@ -40,7 +40,7 @@ class ProjectHandler:
         query = { "project_id": project_id }
         count_nodes = await self.__database.count(collection=Database.NODES, query=query)
         if (count_nodes > 0):
-            raise ApiBadRequest("You have to delete all node in project first")
+            raise ApiBadRequest("Project is not empty")
 
         modification = { "status": ProjectStatus.DELETED.name}
         await self.__database.update(collection=Database.PROJECTS, id=project_id, modification=modification)

@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 
 from utils.logging import get_logger
 from database import Database
@@ -14,7 +15,7 @@ async def handle_create_snapshot_event(body, reply_to, message_id, database: Dat
     try:
         snapshot_id = body["snapshot_id"]
         modification = {
-            "create_processed_at": get_current_isodate()
+            "create_processed_at": datetime.now(tz=timezone.utc)
         }
         if "snapshot_cloud" in body:
             modification["snapshot_cloud_id"] = body["snapshot_cloud"]["snapshot_cloud_id"]
@@ -42,7 +43,7 @@ async def handle_delete_snapshot_event(body, reply_to, message_id, database: Dat
                 "status": SnapshotStatus.DELETE_FAIL.name,
                 "message": body["error"]["message"],
                 "detail": body["error"]["detail"],
-                "delete_processed_at": get_current_isodate()
+                "delete_processed_at": datetime.now(tz=timezone.utc)
             }
             await database.update(collection=Database.SNAPSHOTS, id=snapshot_id, modification=modification)
         else:
@@ -50,7 +51,7 @@ async def handle_delete_snapshot_event(body, reply_to, message_id, database: Dat
             if (snapshot["status"] in [SnapshotStatus.DELETE_PENDING.name, SnapshotStatus.DELETE_FAIL.name]):
                 modification = {
                     "status": SnapshotStatus.DELETED.name,
-                    "delete_processed_at": get_current_isodate()
+                    "delete_processed_at": datetime.now(tz=timezone.utc)
                 }
                 await database.update(collection=Database.SNAPSHOTS, id=snapshot_id, modification=modification)
     except:
@@ -62,7 +63,7 @@ async def handle_update_snapshot_event(body, reply_to, message_id, database: Dat
     try:
         snapshot_id = body["snapshot_id"]
         modification = {
-            "update_processed_at": get_current_isodate()
+            "update_processed_at": datetime.now(tz=timezone.utc)
         }
         if body.get("error"):
             modification["update_status"] = SnapshotUpdateStatus.UPDATE_FAIL.name

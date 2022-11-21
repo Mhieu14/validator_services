@@ -27,7 +27,7 @@ def convert_node_to_output(node):
         "moniker": node["moniker"],
         "status": node["status"],
         "message": node.get("message"),
-        "created_at": node.get("created_at"),
+        "created_at": node.get("create_processed_at"),
         "address": None if fullnode_info == None else fullnode_info.get("ValidatorInfo", {}).get("Address"),
         "public_key": None if fullnode_info == None else fullnode_info.get("ValidatorInfo", {}).get("PubKey", {}).get("value")
     }
@@ -107,7 +107,7 @@ class NodeHandler:
         if snapshot_info is None:
             raise ApiBadRequest("Snapshot is not found")
         if ("status" not in snapshot_info) or (snapshot_info["status"] != SnapshotStatus.CREATED.name):
-            raise ApiBadRequest("Snapshot is creating or created fail")
+            raise ApiBadRequest("Snapshot is not created")
 
         node["snapshot_id"] = snapshot_info["snapshot_id"]
         node["network"] = snapshot_info["network"]

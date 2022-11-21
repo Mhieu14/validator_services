@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import croniter
 
 from aiohttp import web
 from utils.logging import get_logger
@@ -17,6 +18,25 @@ from validator_share_model.src.messages_queue import snapshot_pb2
 
 _LOGGER = get_logger(__name__)
 
+def convert_snapshot_to_output(snapshot):
+    return {
+        "name": snapshot["name"],
+        "snapshot_id": snapshot["snapshot_id"],
+        "network": snapshot["network"],
+        "status": snapshot["status"],
+        "message": snapshot.get("message"),
+        "detail": snapshot.get("detail"),
+        "created_at": snapshot.get("create_processed_at"),
+        "update_status": snapshot.get("update_status"),
+        "update_message": snapshot.get("update_message"),
+        "update_detail": snapshot.get("update_detail"),
+        "updated_at": snapshot.get("update_processed_at"),
+        "snapshot_cloud_id": snapshot.get("snapshot_cloud_id"),
+        "volume_cloud_id": snapshot.get("volume_cloud_id"),
+        "droplet_cloud_id": snapshot.get("droplet_cloud_id"),
+        "snapshot_cloud_created_at": snapshot.get("snapshot_cloud", {}).get("created_at")
+    }
+
 class SnapshotHandler:
     def __init__(self, database: Database, broker_client: BrokerClient):
         self.__database: Database = database
@@ -24,11 +44,16 @@ class SnapshotHandler:
 
     async def get_snapshots(self, user_info, skip, limit):
         # query = { "user_id": user_info["user_id"] }
-        query = {}
+        query = {   
+            "status": {"$ne": SnapshotStatus.DELETED.name}
+        }
         snapshots = await self.__database.find(collection=Database.SNAPSHOTS, query=query, skip=skip, limit=limit)
         count_snapshots = await self.__database.count(collection=Database.SNAPSHOTS, query=query)
+        snapshots_output = []
+        for snapshot in snapshots:
+            snapshots_output.append(convert_snapshot_to_output(snapshot))
         return success({
-            "snapshots": snapshots,
+            "snapshots": snapshots_output,
             "meta": {
                 "offset": skip,
                 "limit": limit,
@@ -41,10 +66,13 @@ class SnapshotHandler:
         if snapshot is None:
             return ApiNotFound("Snapshot")
         return success({
-            "snapshot": snapshot
+            "snapshot": convert_snapshot_to_output(snapshot)
         })
     
     async def create_snapshot(self, snapshot, user_info):
+        if user_info["role"] != "admin":
+            raise ApiForbidden("")
+
         snapshot["user_id"] = user_info["user_id"]
         snapshot["user_create_role"] = user_info["role"]
         snapshot["status"] = SnapshotStatus.CREATE_PENDING.name
@@ -68,6 +96,30 @@ class SnapshotHandler:
                 "status": SnapshotStatus.CREATE_PENDING.name
             }
         })
+
+    async def update_info_snapshot(self, snapshot_id, snapshot, user_info):
+        existed_snapshot = await self.__database.find_by_id(collection=Database.SNAPSHOTS, id=snapshot_id)
+        if existed_snapshot is None:
+            raise ApiBadRequest("Snapshot is not found")
+        if user_info["role"] != "admin" and user_info["user_id"] != existed_snapshot["user_id"]:
+            raise ApiForbidden("")
+        
+        modification = {}
+        if snapshot.get("name"):
+            modification["name"] = snapshot.get("name")
+        if snapshot.get("cron_time"):
+            try:
+                croniter.croniter(snapshot.get("cron_time"))
+            except Exception as error:
+                raise ApiBadRequest(f"cron_time: {error}")
+            modification["cron_time"] = snapshot.get("cron_time")
+        if snapshot.get("volume_cloud_id"):
+            modification["volume_cloud_id"] = snapshot.get("volume_cloud_id")
+        updated_snapshot = await self.__database.update(collection=Database.SNAPSHOTS, id=snapshot_id, modification=modification)
+
+        return success({
+            "snapshot": convert_snapshot_to_output(updated_snapshot)
+        })
     
     async def delete_snapshot(self, snapshot_id, user_info):
         existed_snapshot = await self.__database.find_by_id(collection=Database.SNAPSHOTS, id=snapshot_id)
@@ -77,6 +129,10 @@ class SnapshotHandler:
             raise ApiForbidden("")
         if existed_snapshot["status"] in [SnapshotStatus.DELETE_PENDING.name, SnapshotStatus.DELETED.name]:
             raise ApiBadRequest("Snapshot is deleted or deleting")
+        if existed_snapshot["status"] == SnapshotStatus.CREATE_PENDING.name:
+            raise ApiBadRequest("Snapshot is creating")
+        if "update_status" in existed_snapshot and existed_snapshot["update_status"] == SnapshotUpdateStatus.UPDATE_PENDING.name:
+            raise ApiBadRequest("Snapshot is updating")
         
         modification = { "status": SnapshotStatus.DELETE_PENDING.name}
         await self.__database.update(collection=Database.SNAPSHOTS, id=snapshot_id, modification=modification)

@@ -1,12 +1,13 @@
 import asyncio
-from enum import Enum
 import resource
 import string
-from datetime import datetime
-from typing import Collection
 import motor.motor_asyncio as aiomotor
+
+from datetime import datetime, timezone
+from typing import Collection
 from bson.objectid import ObjectId
 from pymongo import ReturnDocument
+from datetime import datetime
 from pymongo.errors import ServerSelectionTimeoutError
 
 from config import DBConfig
@@ -44,13 +45,16 @@ class Database:
     }
     
     async def create(self, collection: string, new_document: dict):
-        new_document["created_at"] = get_current_isodate()
+        new_document["created_at"] = datetime.now(tz=timezone.utc)
         result = await self._conn[collection].insert_one(new_document)
         inserted_id = str(result.inserted_id)
         return inserted_id
         
     async def find(self, collection: string, query: dict = {}, skip=None, limit=None):
-        cursor = self._conn[collection].find(query).sort("_id", -1).skip(skip).limit(limit)
+        if not skip and not limit:
+            cursor = self._conn[collection].find(query).sort("_id", -1)
+        else:
+            cursor = self._conn[collection].find(query).sort("_id", -1).skip(skip).limit(limit)
         result = []
         async for document in cursor:
             document[self.COLLECTIONS_ID[collection]] = str(document["_id"])
@@ -101,4 +105,17 @@ class Database:
             return None
         updated[self.COLLECTIONS_ID[collection]] = str(updated["_id"])
         updated.pop("_id", None)
+        return updated
+
+    async def update_many(self, collection: string, query: string, modification: dict, unset: dict = None):
+        update = {}
+        if modification:
+            update['$set'] = modification
+        if unset:
+            update['$unset'] = unset
+        updated = await self._conn[collection].update_many(query, update=update)
+        # if updated is None:
+        #     return None
+        # updated[self.COLLECTIONS_ID[collection]] = str(updated["_id"])
+        # updated.pop("_id", None)
         return updated
