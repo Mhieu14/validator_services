@@ -72,7 +72,7 @@ class NodeHandler:
             "node": convert_node_to_output(node)
         })
 
-    async def send_message_create_node(self, node, node_id, user_info, snapshot_info):
+    async def send_message_create_node(self, node, node_id, user_info, snapshot_info, setup_config):
         routing_key = "driver.node.request.create_node"
         message = node_pb2.NodeCreateMessage()
         message.node_id = node_id
@@ -85,6 +85,14 @@ class NodeHandler:
         message.node.moniker = node["moniker"]
         message.node.network = node["network"]
         message.user.user_id = user_info["user_id"]
+        message.setup_config.network = setup_config["network"]
+        message.setup_config.setup_file_url = setup_config["setup_file_url"]
+        message.setup_config.setup_file_name = setup_config["setup_file_name"]
+        message.setup_config.container_name = setup_config["container_name"]
+        message.setup_config.status_command = setup_config["status_command"]
+        message.setup_config.default_droplet_size = setup_config["default_droplet_size"]
+        message.setup_config.env.node_moniker = setup_config["env"]["node_moniker"]
+        message.setup_config.env.volume_name = setup_config["env"]["volume_name"]
         if ("droplet_size" in node):
             message.node.droplet_size = node.get("droplet_size")
         messageJson = convertProtobufToJSON(message)
@@ -115,7 +123,8 @@ class NodeHandler:
         node["status"] = NodeStatus.CREATE_PENDING.name
         created_id = await self.__database.create(collection=Database.NODES, new_document=node)
 
-        await self.send_message_create_node(node=node, node_id=created_id, user_info=user_info, snapshot_info=snapshot_info)
+        setup_config = await self.__database.find_setup_configs_by_network(network=snapshot_info["network"])
+        await self.send_message_create_node(node=node, node_id=created_id, user_info=user_info, snapshot_info=snapshot_info, setup_config=setup_config)
         return success({
             "node": {
                 "node_id": created_id,
@@ -135,17 +144,19 @@ class NodeHandler:
         modification = { "status": NodeStatus.CREATE_RETRYING.name}
         await self.__database.update(collection=Database.NODES, id=node_id, modification=modification)
 
+        setup_config = await self.__database.find_setup_configs_by_network(network=snapshot_info["network"])
         if "create_process" not in existed_node:
             snapshot_id = existed_node["snapshot_id"]
             snapshot_info = await self.__database.find_by_id(collection=Database.SNAPSHOTS, id=snapshot_id)
-            await self.send_message_create_node(node=existed_node, node_id=node_id, user_info=user_info, snapshot_info=snapshot_info)
+            await self.send_message_create_node(node=existed_node, node_id=node_id, user_info=user_info, snapshot_info=snapshot_info, setup_config=setup_config)
         else:
             routing_key = "driver.node.request.retry_create_node"
             message = {
                 "node_id": node_id,
                 "user": {
                     "user_id": user_info["user_id"]
-                }
+                },
+                "setup_config": setup_config
             }
             reply_to = "validatorservice.events.create_node"
             await self.__broker_client.publish(routing_key, json.dumps(message), reply_to)

@@ -78,6 +78,9 @@ class SnapshotHandler:
         snapshot["status"] = SnapshotStatus.CREATE_PENDING.name
         created_id = await self.__database.create(collection=Database.SNAPSHOTS, new_document=snapshot)
         
+        setup_config = await self.__database.find_setup_configs_by_network(network=snapshot["network"])
+        if setup_config is None:
+            raise ApiBadRequest("setup_config not found")
         routing_key = "driver.snapshot.request.create_snapshot"
         message = snapshot_pb2.SnapshotCreateMessage()
         message.snapshot_id = created_id
@@ -86,6 +89,8 @@ class SnapshotHandler:
         message.snapshot.tags.extend(snapshot.get("tags", []))
         message.snapshot.network = snapshot["network"]
         message.user.user_id = user_info["user_id"]
+        message.setup_config.network = setup_config["network"]
+        message.setup_config.container_name = setup_config["container_name"]
         messageJson = convertProtobufToJSON(message)
 
         reply_to = "validatorservice.events.create_snapshot"
@@ -168,6 +173,9 @@ class SnapshotHandler:
         }
         await self.__database.update(collection=Database.SNAPSHOTS, id=snapshot_id, modification=modification)
 
+        setup_config = await self.__database.find_setup_configs_by_network(network=existed_snapshot["network"])
+        if setup_config is None:
+            raise ApiBadRequest("setup_config not found")
         routing_key = "driver.snapshot.request.update_snapshot"
         volume_cloud_id = existed_snapshot["volume_cloud_id"]
         network = existed_snapshot["network"]
@@ -176,6 +184,10 @@ class SnapshotHandler:
             "snapshot": {
                 "volume_cloud_id": volume_cloud_id,
                 "network": network
+            },
+            "setup_config": {
+                "network": setup_config["network"],
+                "container_name": setup_config["container_name"]
             }
         }
         messageJson = json.dumps(message)

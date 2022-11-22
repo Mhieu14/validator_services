@@ -28,6 +28,8 @@ tags:
     description: API relate to nodes
   - name: Snapshots
     description: API relate to snapshots
+  - name: Networks
+    description: API relate to networks
 
 securityDefinitions:
   api_key:
@@ -437,6 +439,26 @@ paths:
           description: Forbidden
         '404':
           description: Not found
+  '/networks':
+    get:
+      tags:
+        - Networks
+      summary: Get list networks
+      parameters:
+      responses:
+        '200':
+          description: Success
+          schema:
+            allOf: 
+            - $ref: '#/definitions/BaseSuccessRes'
+            - type: object
+              properties:
+                data:
+                  properties:
+                    networks:
+                      type: array
+                      items:
+                        $ref: '#/definitions/NetworkModel'
 
 definitions:
   BaseSuccessRes:
@@ -676,3 +698,14 @@ definitions:
         description: network
         type: string
         example: darchub
+  NetworkModel:
+    type: object
+    properties:
+      network:
+        description: network
+        type: string
+        example: darchub
+      name:
+        description: name
+        type: string
+        example: Konstellation

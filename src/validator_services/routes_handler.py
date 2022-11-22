@@ -5,6 +5,7 @@ from snapshot.routes_handler import SnapshotHandler
 from utils.response import success, ApiBadRequest
 from project.routes_handler import ProjectHandler
 from node.routes_handler import NodeHandler
+from network.routes_handler import NetworkHandler
 from clouds.droplet_sizes import droplet_sizes_available
 
 _LOGGER = get_logger(__name__)
@@ -14,6 +15,7 @@ class RouteHandler:
         self._snapshot_handler = SnapshotHandler(database, broker_client)
         self._project_handler = ProjectHandler(database, broker_client)
         self._node_handler = NodeHandler(database, broker_client)
+        self._network_handler = NetworkHandler(database, broker_client)
 
     # projects
     async def create_project(self, request, user_info):
@@ -121,6 +123,11 @@ class RouteHandler:
         node_id = request.match_info.get("node_id", "")
         _LOGGER.debug(f"Get node {node_id} information")
         response = await self._node_handler.get_node(node_id=node_id, user_info=user_info)
+        return response
+    
+    # networks
+    async def get_networks(self, request, user_info):
+        response = await self._network_handler.get_networks()
         return response
 
 async def decode_request(request):

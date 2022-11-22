@@ -38,6 +38,7 @@ class Database:
     PROJECTS = "projects"
     SNAPSHOTS = "snapshots"
     NODES = "nodes"
+    NETWORKS_SETUP_CONFIG = "networks_setup_config"
     COLLECTIONS_ID = {
         PROJECTS: "project_id",
         SNAPSHOTS: "snapshot_id",
@@ -83,7 +84,7 @@ class Database:
         document = await self._conn[collection].find_one(query)
         if document is None:
             print("Invalid dou")
-            return None 
+            return None
         document[self.COLLECTIONS_ID[collection]] = str(document["_id"])
         document.pop("_id", None)
         return document
@@ -114,8 +115,21 @@ class Database:
         if unset:
             update['$unset'] = unset
         updated = await self._conn[collection].update_many(query, update=update)
-        # if updated is None:
-        #     return None
-        # updated[self.COLLECTIONS_ID[collection]] = str(updated["_id"])
-        # updated.pop("_id", None)
         return updated
+
+    async def find_setup_configs_by_network(self, network):
+        query = { "network": network }
+        document = await self._conn[self.NETWORKS_SETUP_CONFIG].find_one(query)
+        if document is None:
+            print("Invalid dou")
+            return None
+        document.pop("_id", None)
+        return document
+
+    async def find_all_network(self):
+        cursor = self._conn[self.NETWORKS_SETUP_CONFIG].find()
+        result = []
+        async for document in cursor:
+            document.pop("_id", None)
+            result.append(document)
+        return result
