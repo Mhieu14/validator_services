@@ -15,7 +15,7 @@ _LOGGER = get_logger(__name__)
 DELAY_UPDATE_SNAPSHOTS = 60 * 60
 # DELAY_UPDATE_SNAPSHOTS = 60
 
-async def send_request_update_snapshot(snapshot, broker_client):
+async def send_request_update_snapshot(snapshot, setup_config, broker_client):
     routing_key = "driver.snapshot.request.update_snapshot"
     snapshot_id = snapshot["snapshot_id"]
     volume_cloud_id = snapshot["volume_cloud_id"]
@@ -25,6 +25,10 @@ async def send_request_update_snapshot(snapshot, broker_client):
         "snapshot": {
             "volume_cloud_id": volume_cloud_id,
             "network": network
+        },
+        "setup_config": {
+            "network": setup_config["network"],
+            "container_name": setup_config["container_name"]
         }
     }
     messageJson = json.dumps(message)
@@ -68,7 +72,8 @@ async def update_snapshots(database: Database, broker_client: BrokerClient):
     
     # push message update
     for snapshot in update_snapshots:
-        await send_request_update_snapshot(snapshot, broker_client)
+        setup_config = await database.find_setup_configs_by_network(network=snapshot["network"])
+        await send_request_update_snapshot(snapshot, setup_config, broker_client)
 
 async def schedule_job(async_func, kwargs, delay):
     while True:
