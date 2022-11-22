@@ -516,8 +516,6 @@ definitions:
             properties:
               snapshot:
                 $ref: '#/definitions/SnapshotModel'
-              meta:
-                $ref: '#/definitions/MetaModel'
   SnapshotsSuccessRes:
     allOf: 
       - $ref: '#/definitions/BaseSuccessRes'
