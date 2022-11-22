@@ -34,7 +34,8 @@ def convert_snapshot_to_output(snapshot):
         "snapshot_cloud_id": snapshot.get("snapshot_cloud_id"),
         "volume_cloud_id": snapshot.get("volume_cloud_id"),
         "droplet_cloud_id": snapshot.get("droplet_cloud_id"),
-        "snapshot_cloud_created_at": snapshot.get("snapshot_cloud", {}).get("created_at")
+        "snapshot_cloud_created_at": snapshot.get("snapshot_cloud", {}).get("created_at"),
+        "cron_time": snapshot.get("cron_time")
     }
 
 class SnapshotHandler:
