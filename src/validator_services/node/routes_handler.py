@@ -102,7 +102,7 @@ class NodeHandler:
     
     async def create_node(self, node, user_info):
         project_info = await self.__database.find_by_id(collection=Database.PROJECTS, id=node["project_id"])
-        if project_info is None:
+        if project_info is None or project_info.get("user_id") != user_info["user_id"]:
             raise ApiBadRequest("Project is not found")
 
         snapshot_info = None
