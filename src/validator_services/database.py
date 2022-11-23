@@ -8,6 +8,7 @@ from typing import Collection
 from bson.objectid import ObjectId
 from pymongo import ReturnDocument
 from datetime import datetime
+from snapshot.status import SnapshotStatus
 from pymongo.errors import ServerSelectionTimeoutError
 
 from config import DBConfig
@@ -133,3 +134,17 @@ class Database:
             document.pop("_id", None)
             result.append(document)
         return result
+
+    async def find_snapshot_by_network(self, network):
+        query = { 
+            "network": network,
+            "status": SnapshotStatus.CREATED.name,
+            "snapshot_cloud": { "$exists": True }
+        }
+        document = await self._conn[self.SNAPSHOTS].find_one(query, sort=[("snapshot_cloud.created_at", -1)])
+        if document is None:
+            print("Invalid dou")
+            return None
+        document[self.COLLECTIONS_ID[self.SNAPSHOTS]] = str(document["_id"])
+        document.pop("_id", None)
+        return document

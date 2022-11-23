@@ -110,8 +110,7 @@ class NodeHandler:
             snapshot_id = node["snapshot_id"]
             snapshot_info = await self.__database.find_by_id(collection=Database.SNAPSHOTS, id=snapshot_id)
         else:
-            query = { "network": node["network"] }
-            snapshot_info = await self.__database.find_one(collection=Database.SNAPSHOTS, query=query)
+            snapshot_info = await self.__database.find_snapshot_by_network(network=node["network"])
         if snapshot_info is None:
             raise ApiBadRequest("Snapshot is not found")
         if ("status" not in snapshot_info) or (snapshot_info["status"] != SnapshotStatus.CREATED.name):
