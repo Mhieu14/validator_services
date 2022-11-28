@@ -679,10 +679,6 @@ definitions:
         type: string
         example: Moniker name of node
         required: true
-      snapshot_id:
-        description: snapshot_id
-        type: string
-        example: 636b644e7e95a228fa59cfa5
   SnapshotModel:
     type: object
     properties:
