@@ -17,13 +17,14 @@ async def handle_create_snapshot_event(body, reply_to, message_id, database: Dat
         modification = {
             "create_processed_at": datetime.now(tz=timezone.utc)
         }
-        if "snapshot_cloud" in body:
-            modification["snapshot_cloud_id"] = body["snapshot_cloud"]["snapshot_cloud_id"]
         if "error" in body:
             modification["status"] = SnapshotStatus.CREATE_FAIL.name
             modification["message"] = body["error"]["message"]
             modification["detail"] = body["error"]["detail"]
         else:
+            modification["snapshot_cloud"] = body["snapshot_cloud"]
+            modification["snapshot_cloud_id"] = body["snapshot_cloud"]["snapshot_cloud_id"]
+            modification["droplet_cloud_id"] = body["droplet_cloud_id"]
             modification["status"] = SnapshotStatus.CREATED.name
         await database.update(
             collection=Database.SNAPSHOTS,
