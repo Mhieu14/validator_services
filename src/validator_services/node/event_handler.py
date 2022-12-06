@@ -58,6 +58,7 @@ async def handle_delete_node_event(body, reply_to, message_id, database: Databas
                     "status": NodeStatus.DELETED.name,
                     "delete_processed_at": datetime.now(tz=timezone.utc)
                 }
+                await database.increase_total_nodes_project(project_id=node["project_id"], number=-1)
                 await database.update(collection=Database.NODES, id=node_id, modification=modification)
     except Exception as error:
         _LOGGER.error(f"Exec handle_delete_node_event fail: {str(error)}")

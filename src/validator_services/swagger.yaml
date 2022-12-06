@@ -589,6 +589,10 @@ definitions:
         description: name
         type: string
         example: A new Joe's project
+      total_nodes:
+        description: total_nodes
+        type: number
+        example: 0
       description:
         description: description
         type: string

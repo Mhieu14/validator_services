@@ -148,3 +148,15 @@ class Database:
         document[self.COLLECTIONS_ID[self.SNAPSHOTS]] = str(document["_id"])
         document.pop("_id", None)
         return document
+
+    async def increase_total_nodes_project(self, project_id, number):
+        update = {
+            "$inc": { "total_nodes": number }
+        }
+        filter = {
+            "_id": ObjectId(project_id)
+        }
+        updated = await self._conn[self.PROJECTS].find_one_and_update(filter,
+                                                                    update=update,
+                                                                    return_document=ReturnDocument.AFTER)
+        return updated

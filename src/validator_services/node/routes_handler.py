@@ -139,6 +139,7 @@ class NodeHandler:
         node["user_id"] = user_info["user_id"]
         node["status"] = NodeStatus.CREATE_PENDING.name
         created_id = await self.__database.create(collection=Database.NODES, new_document=node)
+        await self.__database.increase_total_nodes_project(project_id=node["project_id"], number=1)
 
         setup_config = await self.__database.find_setup_configs_by_network(network=snapshot_info["network"])
         await self.send_message_create_node(node=node, node_id=created_id, user_info=user_info, snapshot_info=snapshot_info, setup_config=setup_config)
