@@ -18,9 +18,14 @@ from validator_share_model.src.messages_queue import node_pb2
 
 _LOGGER = get_logger(__name__)
 
-def convert_node_to_output(node):
+default_cloud_provider = {
+    "id": "digital_ocean",
+    "name": "DigitalOcean"
+}
+
+def convert_node_to_output(node, project=None, cloud_provider=default_cloud_provider):
     fullnode_info = node.get("fullnode_info")
-    return {
+    output = {
         "project_id": node.get("project_id"),
         "node_id": node["node_id"],
         "network": node["network"],
@@ -31,6 +36,12 @@ def convert_node_to_output(node):
         "address": None if fullnode_info == None else fullnode_info.get("ValidatorInfo", {}).get("Address"),
         "public_key": None if fullnode_info == None else fullnode_info.get("ValidatorInfo", {}).get("PubKey", {}).get("value")
     }
+    if project:
+        output["project"] = project
+    if cloud_provider:
+        output["cloud_provider"] = cloud_provider
+    return output
+
 class NodeHandler:
     def __init__(self, database: Database, broker_client: BrokerClient):
         self.__database: Database = database
@@ -68,8 +79,11 @@ class NodeHandler:
             return ApiNotFound("Node")
         if user_info["role"] != "admin" and user_info["user_id"] != node["user_id"]:
             raise ApiForbidden("")
+        project = None
+        if node.get("project_id"):
+            project = await self.__database.find_by_id(collection=Database.PROJECTS, id=node.get("project_id"))
         return success({
-            "node": convert_node_to_output(node)
+            "node": convert_node_to_output(node, project=project)
         })
 
     async def send_message_create_node(self, node, node_id, user_info, snapshot_info, setup_config):

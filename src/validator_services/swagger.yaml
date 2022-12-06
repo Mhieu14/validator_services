@@ -661,6 +661,10 @@ definitions:
         description: public_key
         type: string
         example: /+khIa5wW0bQK3yl/4DVB89lFpbCAvj0ZcVGIJWx/G8=
+      project:
+        $ref: '#/definitions/ProjectModel'
+      cloud_provider:
+        $ref: '#/definitions/CloudProviderModel'
   NodeCreateModel:
     type: object
     properties:
@@ -705,3 +709,14 @@ definitions:
         description: name
         type: string
         example: Konstellation
+  CloudProviderModel:
+    type: object
+    properties:
+      id:
+        description: id
+        type: string
+        example: digital_ocean
+      name:
+        description: name
+        type: string
+        example: DigitalOcean
