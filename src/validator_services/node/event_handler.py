@@ -13,11 +13,11 @@ async def handle_create_node_event(body, reply_to, message_id, database: Databas
     # Handle event response from driver
     _LOGGER.debug("Receiving response about node creating node")
     try:
-        node_id = body["node_id"]
-        volume = body["volume"]
-        droplet = body["droplet"]
-        fullnode_info = body["fullnode_info"]
-        process = body["process"]
+        node_id = body.get("node_id")
+        volume = body.get("volume")
+        droplet = body.get("droplet")
+        fullnode_info = body.get("fullnode_info")
+        process = body.get("process")
         modification = {
             "volume": volume,
             "droplet": droplet,
@@ -33,8 +33,9 @@ async def handle_create_node_event(body, reply_to, message_id, database: Databas
             modification["status"] = NodeStatus.CREATED.name
         _LOGGER.debug("Done")
         await database.update(collection=Database.NODES, id=node_id, modification=modification)
-    except:
-        _LOGGER.error(f"Exec handle_delete_node_event fail message_id: {message_id}")
+    except Exception as error:
+        _LOGGER.error(error, exc_info=True)
+        _LOGGER.error(f"Exec handle_create_node_event fail: {str(error)}")
 
 
 async def handle_delete_node_event(body, reply_to, message_id, database: Database):
@@ -58,8 +59,8 @@ async def handle_delete_node_event(body, reply_to, message_id, database: Databas
                     "delete_processed_at": datetime.now(tz=timezone.utc)
                 }
                 await database.update(collection=Database.NODES, id=node_id, modification=modification)
-    except:
-        _LOGGER.error(f"Exec handle_delete_node_event fail message_id: {message_id}")
+    except Exception as error:
+        _LOGGER.error(f"Exec handle_delete_node_event fail: {str(error)}")
     
 async def test_handle_request_create_node(body, reply_to, message_id, database: Database):
     try:

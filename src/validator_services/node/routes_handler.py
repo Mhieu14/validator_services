@@ -91,8 +91,12 @@ class NodeHandler:
         message.setup_config.container_name = setup_config["container_name"]
         message.setup_config.status_command = setup_config["status_command"]
         message.setup_config.default_droplet_size = setup_config["default_droplet_size"]
+        message.setup_config.bond_denom = setup_config["bond_denom"]
+        message.setup_config.prefix = setup_config["prefix"]
         message.setup_config.env.node_moniker = setup_config["env"]["node_moniker"]
         message.setup_config.env.volume_name = setup_config["env"]["volume_name"]
+        message.setup_config.monitoring_env.telegram_admin = setup_config["monitoring_env"]["telegram_admin"]
+        message.setup_config.monitoring_env.telegram_token = setup_config["monitoring_env"]["telegram_token"]
         if ("droplet_size" in node):
             message.node.droplet_size = node.get("droplet_size")
         messageJson = convertProtobufToJSON(message)
@@ -143,7 +147,7 @@ class NodeHandler:
         modification = { "status": NodeStatus.CREATE_RETRYING.name}
         await self.__database.update(collection=Database.NODES, id=node_id, modification=modification)
 
-        setup_config = await self.__database.find_setup_configs_by_network(network=snapshot_info["network"])
+        setup_config = await self.__database.find_setup_configs_by_network(network=existed_node["network"])
         if "create_process" not in existed_node:
             snapshot_id = existed_node["snapshot_id"]
             snapshot_info = await self.__database.find_by_id(collection=Database.SNAPSHOTS, id=snapshot_id)
