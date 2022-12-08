@@ -14,3 +14,9 @@ def get_current_isodate():
 
 def get_current_timestamp():
     return int(datetime.timestamp(datetime.now(tz=timezone.utc)))
+
+def get_public_ip_droplet(droplet):
+    for ip in droplet["networks"]["v4"]:
+        if (ip["type"] == "public"):
+            droplet_ip = ip["ip_address"]
+    return droplet_ip

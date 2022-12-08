@@ -9,7 +9,7 @@ from database import Database
 from utils.broker_client import BrokerClient
 from node.status import NodeStatus
 from snapshot.status import SnapshotStatus
-from utils.helper import convertProtobufToJSON
+from utils.helper import convertProtobufToJSON, get_public_ip_droplet
 
 current = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.dirname(os.path.dirname(current)))
@@ -182,6 +182,36 @@ class NodeHandler:
             "node": {
                 "node_id": node_id,
                 "status": NodeStatus.CREATE_RETRYING.name
+            }
+        })
+
+    async def add_validator(self, node_id, validator, user_info):
+        existed_node = await self.__database.find_by_id(collection=Database.NODES, id=node_id)
+        if existed_node is None:
+            raise ApiBadRequest("Node is not found")
+        if user_info["role"] != "admin" and user_info["user_id"] != existed_node["user_id"]:
+            raise ApiForbidden("")
+        if existed_node["status"] != NodeStatus.CREATED.name:
+            raise ApiBadRequest("Not not created")
+
+        modification = { "validator": validator }
+        await self.__database.update(collection=Database.NODES, id=node_id, modification=modification)
+
+        routing_key = "driver.node.request.add_validator_monitoring"
+        message = {
+            "node_id": node_id,
+            "validator": {
+                "validator_address": validator["validator_address"],
+                "wallet_address": validator["wallet_address"],
+                "node_ip": get_public_ip_droplet(existed_node["droplet"])
+            }
+        }
+        reply_to = "validatorservice.events.add_validator_monitoring"
+        await self.__broker_client.publish(routing_key, json.dumps(message), reply_to)
+        return success({
+            "node": {
+                "node_id": node_id,
+                "validator": validator
             }
         })
 

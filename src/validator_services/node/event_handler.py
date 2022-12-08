@@ -62,22 +62,26 @@ async def handle_delete_node_event(body, reply_to, message_id, database: Databas
                 await database.update(collection=Database.NODES, id=node_id, modification=modification)
     except Exception as error:
         _LOGGER.error(f"Exec handle_delete_node_event fail: {str(error)}")
-    
-async def test_handle_request_create_node(body, reply_to, message_id, database: Database):
+
+async def handle_response_add_validator_monitoring(body, reply_to, message_id, database: Database):
+    _LOGGER.info(f"Receive a response to add_validator_monitoring from driver")
     try:
-        print("test_handle_request_create_node")
-        broker_client = BrokerClient()
-        routing_key = reply_to
-        message = {
-            "node_id": body["node_id"],
-            "error": {
-                "message": "A random error"
-            },
-            "data": {
-                "id": "nodesnapshot_cloud_id_123",
-                "name": "name"
+        node_id = body["node_id"]
+        if 'error' in body:
+            modification = {
+                "validator_monitoring_status": "FAIL",
+                "validator_monitoring_message": body["error"]["message"],
+                "validator_monitoring_detail": body["error"]["detail"],
+                "validator_monitoring_processed_at": datetime.now(tz=timezone.utc)
             }
-        }
-        await broker_client.publish_dict_data(routing_key, message)
-    except:
-        _LOGGER.debug("Exec test_handle_request_create_node fail message_id: ", message_id)
+            await database.update(collection=Database.NODES, id=node_id, modification=modification)
+        else:
+            modification = {
+                "validator_monitoring_status": "SUCCESS",
+                "validator_monitoring_message": None,
+                "validator_monitoring_detail": None,
+                "validator_monitoring_processed_at": datetime.now(tz=timezone.utc)
+            }
+            await database.update(collection=Database.NODES, id=node_id, modification=modification)
+    except Exception as error:
+        _LOGGER.error(f"Exec handle_response_add_validator_monitoring fail: {str(error)}")

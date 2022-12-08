@@ -14,7 +14,7 @@ from utils.broker_client import BrokerClient
 from utils.middleware import self_authorize
 
 from snapshot.event_handler import handle_create_snapshot_event, handle_delete_snapshot_event, handle_update_snapshot_event
-from node.event_handler import handle_create_node_event, handle_delete_node_event
+from node.event_handler import handle_create_node_event, handle_delete_node_event, handle_response_add_validator_monitoring
 
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
@@ -37,6 +37,7 @@ async def setup_service(app):
             "validatorservice.events.update_snapshot": handle_update_snapshot_event,
             "validatorservice.events.create_node": handle_create_node_event,
             "validatorservice.events.delete_node": handle_delete_node_event,
+            "validatorservice.events.add_validator_monitoring": handle_response_add_validator_monitoring
         }
 
         # event_handlers_test = {
@@ -68,7 +69,7 @@ async def setup_service(app):
         app.router.add_route("GET", "/v1/nodes/{node_id}", handler.get_node)
         app.router.add_route("POST", "/v1/nodes", handler.create_node)
         app.router.add_route("POST", "/v1/nodes/{node_id}/retry", handler.retry_create_node)
-        # app.router.add_route("POST", "/v1/nodes/{node_id}/validator")
+        app.router.add_route("POST", "/v1/nodes/{node_id}/add_validator", handler.add_validator)
         app.router.add_route("DELETE", "/v1/nodes/{node_id}", handler.delete_node)
         
         # network

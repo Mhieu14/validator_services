@@ -124,7 +124,16 @@ class RouteHandler:
         _LOGGER.debug(f"Get node {node_id} information")
         response = await self._node_handler.get_node(node_id=node_id, user_info=user_info)
         return response
-    
+
+    async def add_validator(self, request, user_info):
+        node_id = request.match_info.get("node_id", "")
+        _LOGGER.debug(f"Add validator with node {node_id}")
+        validator = await decode_request(request)
+        required_fields = ["validator_address", "wallet_address"]
+        validate_fields(required_fields, validator)
+        response = await self._node_handler.add_validator(node_id=node_id, validator=validator, user_info=user_info)
+        return response
+
     # networks
     async def get_networks(self, request, user_info):
         response = await self._network_handler.get_networks()
