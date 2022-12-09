@@ -163,6 +163,6 @@ def validate_title(field, body):
     remove_duplicate_space = re.sub(' +', ' ',content)
     if remove_duplicate_space == "" or remove_duplicate_space == " ":
         raise ApiBadRequest(f"'{field}' is required")
-    pattern = re.compile("^[a-zA-Z0-9 ]*$")
+    pattern = re.compile("^[a-zA-Z0-9\.\_\-\ ]*$")
     if not pattern.match(remove_duplicate_space):
-        raise ApiBadRequest(f"'{field}' is invalid")
+        raise ApiBadRequest(f"'{field}' is invalid: {field} must contain only letters, numbers, spaces, '-', '.' or '_' character")
