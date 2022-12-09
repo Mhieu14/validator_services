@@ -1,3 +1,4 @@
+import re
 from json.decoder import JSONDecodeError
 from urllib import response
 from utils.logging import get_logger
@@ -23,6 +24,7 @@ class RouteHandler:
         project = await decode_request(request)
         required_fields = ["name"]
         validate_fields(required_fields, project)
+        validate_title("name", project)
         response = await self._project_handler.create_project(project, user_info)
         return response
     
@@ -54,6 +56,7 @@ class RouteHandler:
         snapshot = await decode_request(request)
         required_fields = ["volume_cloud_id", "name", "network"]
         validate_fields(required_fields, snapshot)
+        validate_title("name", snapshot)
         response = await seft._snapshot_handler.create_snapshot(snapshot, user_info)
         return response
 
@@ -94,9 +97,10 @@ class RouteHandler:
         _LOGGER.debug("Create a new node")
         node = await decode_request(request)
         required_fields = ["network", "moniker", "project_id"]
+        validate_fields(required_fields, node)
+        validate_title("moniker", node)
         if ("droplet_size" in node and node["droplet_size"] not in droplet_sizes_available):
             raise ApiBadRequest(f"droplet_size invalid")
-        validate_fields(required_fields, node)
         response = await seft._node_handler.create_node(node, user_info)
         return response
 
@@ -150,3 +154,15 @@ def validate_fields(required_fields, body):
     for field in required_fields:
         if body.get(field) is None:
             raise ApiBadRequest(f"'{field}' parameter is required")
+
+
+def validate_title(field, body):
+    content = body.get(field)
+    if not content:
+        raise ApiBadRequest(f"'{field}' parameter is required")
+    remove_duplicate_space = re.sub(' +', ' ',content)
+    if remove_duplicate_space == "" or remove_duplicate_space == " ":
+        raise ApiBadRequest(f"'{field}' is required")
+    pattern = re.compile("^[a-zA-Z0-9 ]*$")
+    if not pattern.match(remove_duplicate_space):
+        raise ApiBadRequest(f"'{field}' is invalid")
