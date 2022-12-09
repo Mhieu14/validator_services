@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import requests
 
 from aiohttp import web
 from utils.logging import get_logger
@@ -23,7 +24,7 @@ default_cloud_provider = {
     "name": "DigitalOcean"
 }
 
-def convert_node_to_output(node, project=None, cloud_provider=default_cloud_provider):
+def convert_node_to_output(node, project=None, cloud_provider=default_cloud_provider, sync_info=None):
     fullnode_info = node.get("fullnode_info")
     output = {
         "project_id": node.get("project_id"),
@@ -40,7 +41,19 @@ def convert_node_to_output(node, project=None, cloud_provider=default_cloud_prov
         output["project"] = project
     if cloud_provider:
         output["cloud_provider"] = cloud_provider
+    if sync_info:
+        output["sync_info"] = sync_info
     return output
+
+async def get_sync_info(droplet_ip):
+    try:
+        response_status = requests.get(f"http://{droplet_ip}:26657/status")
+        response_status.raise_for_status()
+        data = response_status.json()
+        return data["result"]["sync_info"]
+    except Exception as error:
+        _LOGGER.error(error)
+        return None
 
 class NodeHandler:
     def __init__(self, database: Database, broker_client: BrokerClient):
@@ -82,8 +95,12 @@ class NodeHandler:
         project = None
         if node.get("project_id"):
             project = await self.__database.find_by_id(collection=Database.PROJECTS, id=node.get("project_id"))
+        sync_info = None
+        if (node["status"] == NodeStatus.CREATED.name):
+            droplet_ip = get_public_ip_droplet(node["droplet"])
+            sync_info = await get_sync_info(droplet_ip)
         return success({
-            "node": convert_node_to_output(node, project=project)
+            "node": convert_node_to_output(node, project=project, sync_info=sync_info)
         })
 
     async def send_message_create_node(self, node, node_id, user_info, snapshot_info, setup_config):
