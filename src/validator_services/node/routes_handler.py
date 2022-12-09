@@ -43,6 +43,7 @@ def convert_node_to_output(node, project=None, cloud_provider=default_cloud_prov
         output["cloud_provider"] = cloud_provider
     if syncing is not None:
         output["syncing"] = syncing
+        output["can_create_validator"] = not syncing
     return output
 
 async def get_syncing_status(droplet_ip):
