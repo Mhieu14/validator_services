@@ -24,7 +24,7 @@ default_cloud_provider = {
     "name": "DigitalOcean"
 }
 
-def convert_node_to_output(node, project=None, cloud_provider=default_cloud_provider, syncing=None):
+def convert_node_to_output(node, project=None, cloud_provider=default_cloud_provider, syncing=None, can_create_validator=None):
     fullnode_info = node.get("fullnode_info")
     output = {
         "project_id": node.get("project_id"),
@@ -43,7 +43,8 @@ def convert_node_to_output(node, project=None, cloud_provider=default_cloud_prov
         output["cloud_provider"] = cloud_provider
     if syncing is not None:
         output["syncing"] = syncing
-        output["can_create_validator"] = not syncing
+    if can_create_validator is not None: 
+        output["can_create_validator"] = can_create_validator
     return output
 
 async def get_syncing_status(droplet_ip):
@@ -97,11 +98,13 @@ class NodeHandler:
         if node.get("project_id"):
             project = await self.__database.find_by_id(collection=Database.PROJECTS, id=node.get("project_id"))
         syncing = None
+        can_create_validator = False
         if (node["status"] == NodeStatus.CREATED.name):
             droplet_ip = get_public_ip_droplet(node["droplet"])
             syncing = await get_syncing_status(droplet_ip)
+            can_create_validator = not syncing
         return success({
-            "node": convert_node_to_output(node, project=project, syncing=syncing)
+            "node": convert_node_to_output(node, project=project, syncing=syncing, can_create_validator=can_create_validator)
         })
 
     async def send_message_create_node(self, node, node_id, user_info, snapshot_info, setup_config):
