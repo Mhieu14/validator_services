@@ -75,6 +75,9 @@ async def setup_service(app):
         # network
         app.router.add_route("GET", "/v1/networks", handler.get_networks)
 
+        # cloud provider
+        app.router.add_route("GET", "/v1/cloud_providers", handler.get_cloud_providers)
+
         cors = aiohttp_cors.setup(
             app,
             defaults={

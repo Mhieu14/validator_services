@@ -11,6 +11,7 @@ from utils.broker_client import BrokerClient
 from node.status import NodeStatus
 from snapshot.status import SnapshotStatus
 from utils.helper import convertProtobufToJSON, get_public_ip_droplet
+from clouds.providers import default_cloud_provider
 
 current = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.dirname(os.path.dirname(current)))
@@ -18,11 +19,6 @@ sys.path.append(os.path.dirname(os.path.dirname(current)))
 from validator_share_model.src.messages_queue import node_pb2
 
 _LOGGER = get_logger(__name__)
-
-default_cloud_provider = {
-    "id": "digital_ocean",
-    "name": "DigitalOcean"
-}
 
 def convert_node_to_output(node, project=None, cloud_provider=default_cloud_provider, syncing=None, can_create_validator=None):
     fullnode_info = node.get("fullnode_info")

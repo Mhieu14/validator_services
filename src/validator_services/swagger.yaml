@@ -30,6 +30,8 @@ tags:
     description: API relate to snapshots
   - name: Networks
     description: API relate to networks
+  - name: Clouds
+    description: API relate to clouds
 
 securityDefinitions:
   api_key:
@@ -459,7 +461,26 @@ paths:
                       type: array
                       items:
                         $ref: '#/definitions/NetworkModel'
-
+  '/cloud_providers':
+    get:
+      tags:
+        - Clouds
+      summary: Get list cloud providers
+      parameters:
+      responses:
+        '200':
+          description: Success
+          schema:
+            allOf: 
+            - $ref: '#/definitions/BaseSuccessRes'
+            - type: object
+              properties:
+                data:
+                  properties:
+                    cloud_providers:
+                      type: array
+                      items:
+                        $ref: '#/definitions/CloudProviderModel'
 definitions:
   BaseSuccessRes:
     type: object

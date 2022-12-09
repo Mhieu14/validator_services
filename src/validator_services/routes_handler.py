@@ -8,6 +8,7 @@ from project.routes_handler import ProjectHandler
 from node.routes_handler import NodeHandler
 from network.routes_handler import NetworkHandler
 from clouds.droplet_sizes import droplet_sizes_available
+from clouds.providers import default_cloud_provider
 
 _LOGGER = get_logger(__name__)
 
@@ -142,6 +143,9 @@ class RouteHandler:
     async def get_networks(self, request, user_info):
         response = await self._network_handler.get_networks()
         return response
+
+    async def get_cloud_providers(self, request, user_info):
+        return success({"cloud_providers": [default_cloud_provider]})
 
 async def decode_request(request):
     try:
