@@ -31,7 +31,8 @@ def convert_node_to_output(node, project=None, cloud_provider=default_cloud_prov
         "message": node.get("message"),
         "created_at": node.get("create_processed_at"),
         "address": None if fullnode_info == None else fullnode_info.get("ValidatorInfo", {}).get("Address"),
-        "public_key": None if fullnode_info == None else fullnode_info.get("ValidatorInfo", {}).get("PubKey", {}).get("value")
+        "public_key": None if fullnode_info == None else fullnode_info.get("ValidatorInfo", {}).get("PubKey", {}).get("value"),
+        "validator": node.get("validator")
     }
     if project:
         output["project"] = project
