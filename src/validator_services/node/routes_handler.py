@@ -20,7 +20,7 @@ from validator_share_model.src.messages_queue import node_pb2
 
 _LOGGER = get_logger(__name__)
 
-def convert_node_to_output(node, project=None, cloud_provider=default_cloud_provider, syncing=None, can_create_validator=None):
+def convert_node_to_output(node, project=None, cloud_provider=default_cloud_provider, syncing=None, can_create_validator=None, validator_info=None):
     fullnode_info = node.get("fullnode_info")
     output = {
         "project_id": node.get("project_id"),
@@ -42,6 +42,8 @@ def convert_node_to_output(node, project=None, cloud_provider=default_cloud_prov
         output["syncing"] = syncing
     if can_create_validator is not None: 
         output["can_create_validator"] = can_create_validator
+    if validator_info:
+        output["validator_info"] = validator_info
     return output
 
 async def get_syncing_status(droplet_ip):
@@ -54,6 +56,15 @@ async def get_syncing_status(droplet_ip):
         _LOGGER.error(error)
         return None
 
+async def get_validator_info(droplet_ip, validator_address):
+    try:
+        response_status = requests.get(f"http://{droplet_ip}:1317/cosmos/staking/v1beta1/validators/{validator_address}")
+        response_status.raise_for_status()
+        data = response_status.json()
+        return data["validator"]
+    except Exception as error:
+        _LOGGER.error(error)
+        return None
 class NodeHandler:
     def __init__(self, database: Database, broker_client: BrokerClient):
         self.__database: Database = database
@@ -100,8 +111,13 @@ class NodeHandler:
             droplet_ip = get_public_ip_droplet(node["droplet"])
             syncing = await get_syncing_status(droplet_ip)
             can_create_validator = not syncing
+        validator_info = None
+        if node.get('validator'):
+            validator_address = node['validator'].get('validator_address')
+            validator_info = await get_validator_info(droplet_ip, validator_address)
+            can_create_validator = False
         return success({
-            "node": convert_node_to_output(node, project=project, syncing=syncing, can_create_validator=can_create_validator)
+            "node": convert_node_to_output(node, project=project, syncing=syncing, can_create_validator=can_create_validator, validator_info=validator_info)
         })
 
     async def send_message_create_node(self, node, node_id, user_info, snapshot_info, setup_config):
