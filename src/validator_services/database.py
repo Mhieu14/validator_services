@@ -40,10 +40,12 @@ class Database:
     SNAPSHOTS = "snapshots"
     NODES = "nodes"
     NETWORKS_SETUP_CONFIG = "networks_setup_config"
+    VALIDATORS = "validators"
     COLLECTIONS_ID = {
         PROJECTS: "project_id",
         SNAPSHOTS: "snapshot_id",
-        NODES: "node_id"
+        NODES: "node_id",
+        VALIDATORS: "validator_id"
     }
     
     async def create(self, collection: string, new_document: dict):

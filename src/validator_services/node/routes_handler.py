@@ -134,7 +134,7 @@ class NodeHandler:
         validator_info = None
         if node.get('validator'):
             validator_address = node['validator'].get('validator_address')
-            validator_info = await get_validator_info(droplet_ip, validator_address)
+            validator_info = await self.__database.find_one(collection=Database.VALIDATORS, query={"operatorAddress": validator_address})
             can_create_validator = False
         chain_info = await get_chain_info(node.get("network"))
         return success({
