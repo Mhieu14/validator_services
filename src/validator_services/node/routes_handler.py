@@ -253,11 +253,19 @@ class NodeHandler:
         if user_info["role"] != "admin" and user_info["user_id"] != existed_node["user_id"]:
             raise ApiForbidden("")
         if existed_node["status"] != NodeStatus.CREATED.name:
-            raise ApiBadRequest("Not not created")
+            raise ApiBadRequest("Node not created")
+        fullnode_info = existed_node.get("fullnode_info")
+        if not fullnode_info:
+            raise ApiBadRequest("Fullnode not created")
 
         modification = { "validator": validator }
         await self.__database.update(collection=Database.NODES, id=node_id, modification=modification)
-
+        await self.__database.create(collection=Database.VALIDATORS, new_document={
+            "network": existed_node["network"],
+            "moniker": existed_node["moniker"],
+            "operatorAddress": validator["validator_address"],
+            "publicKey": fullnode_info.get("ValidatorInfo", {}).get("PubKey", {}).get("value"),
+        })
         routing_key = "driver.node.request.add_validator_monitoring"
         message = {
             "node_id": node_id,
