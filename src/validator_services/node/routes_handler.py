@@ -28,7 +28,7 @@ def convert_node_to_output(
         validator_info=None, 
         chain_info = None
     ):
-    fullnode_info = node.get("fullnode_info")
+    fullnode_info = node.get("fullnode_info", {})
     fullnode_address = None
     fullnode_public_key = None
     if fullnode_info.get("ValidatorInfo"):
