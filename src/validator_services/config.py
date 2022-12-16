@@ -28,6 +28,6 @@ class QueueConfig:
 
 class VchainApiConfig:
     node_env = os.environ.get("NODE_ENV")
-    vchain_api_pro = os.environ.get("NODE_ENV_PRO")
-    vchain_api_dev = os.environ.get("NODE_ENV_DEV")
+    vchain_api_pro = os.environ.get("VCHAIN_API_PRO")
+    vchain_api_dev = os.environ.get("VCHAIN_API_DEV")
     VCHAIN_API = vchain_api_pro if node_env == 'production' else vchain_api_dev

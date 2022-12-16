@@ -28,13 +28,13 @@ def convert_node_to_output(
         validator_info=None, 
         chain_info = None
     ):
-    fullnode_info = node.get("fullnode_info", {})
+    fullnode_info = node.get("fullnode_info")
     fullnode_address = None
     fullnode_public_key = None
-    if fullnode_info.get("ValidatorInfo"):
+    if fullnode_info and fullnode_info.get("ValidatorInfo"):
         fullnode_address = fullnode_info.get("ValidatorInfo", {}).get("Address")
         fullnode_public_key = fullnode_info.get("ValidatorInfo", {}).get("PubKey", {}).get("value")
-    if fullnode_info.get("validator_info"):
+    if fullnode_info and fullnode_info.get("validator_info"):
         fullnode_address = fullnode_info.get("validator_info", {}).get("address")
         fullnode_public_key = fullnode_info.get("validator_info", {}).get("pub_key", {}).get("value")
     output = {
