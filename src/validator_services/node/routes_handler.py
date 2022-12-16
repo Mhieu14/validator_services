@@ -12,6 +12,7 @@ from node.status import NodeStatus
 from snapshot.status import SnapshotStatus
 from utils.helper import convertProtobufToJSON, get_public_ip_droplet
 from clouds.providers import default_cloud_provider
+from config import VchainApiConfig
 
 current = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.dirname(os.path.dirname(current)))
@@ -28,6 +29,14 @@ def convert_node_to_output(
         chain_info = None
     ):
     fullnode_info = node.get("fullnode_info")
+    fullnode_address = None
+    fullnode_public_key = None
+    if fullnode_info.get("ValidatorInfo"):
+        fullnode_address = fullnode_info.get("ValidatorInfo", {}).get("Address")
+        fullnode_public_key = fullnode_info.get("ValidatorInfo", {}).get("PubKey", {}).get("value")
+    if fullnode_info.get("validator_info"):
+        fullnode_address = fullnode_info.get("validator_info", {}).get("address")
+        fullnode_public_key = fullnode_info.get("validator_info", {}).get("pub_key", {}).get("value")
     output = {
         "project_id": node.get("project_id"),
         "node_id": node["node_id"],
@@ -36,8 +45,8 @@ def convert_node_to_output(
         "status": node["status"],
         "message": node.get("message"),
         "created_at": node.get("create_processed_at"),
-        "address": None if fullnode_info == None else fullnode_info.get("ValidatorInfo", {}).get("Address"),
-        "public_key": None if fullnode_info == None else fullnode_info.get("ValidatorInfo", {}).get("PubKey", {}).get("value"),
+        "address": fullnode_address,
+        "public_key": fullnode_public_key,
         "validator": node.get("validator")
     }
     if project:
@@ -77,7 +86,7 @@ async def get_validator_info(droplet_ip, validator_address):
 async def get_chain_info(network):
     try:
         params = { "chainId": network }
-        response_status = requests.get(f"https://api.vchain.zone/api/v1/chain/chain-info", params)
+        response_status = requests.get(f"{VchainApiConfig.VCHAIN_API}/api/v1/chain/chain-info", params)
         response_status.raise_for_status()
         data = response_status.json()
         return data["chainInfo"]

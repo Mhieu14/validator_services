@@ -25,3 +25,9 @@ class QueueConfig:
     # SERVICE_DRIVER_QUEUE_NAME = os.environ.get("RABBITMQ_SERVICE_DRIVER_QUEUE_NAME") or ""
     # DRIVER_WORKER_QUEUE_NAME = os.environ.get("RABBITMQ_DRIVER_WORKER_QUEUE_NAME") or ""
     EXCHANGE_NAME = os.environ.get("RABBITMQ_EXCHANGE_NAME") or "vchain.zone"
+
+class VchainApiConfig:
+    node_env = os.environ.get("NODE_ENV")
+    vchain_api_pro = os.environ.get("NODE_ENV_PRO")
+    vchain_api_dev = os.environ.get("NODE_ENV_DEV")
+    VCHAIN_API = vchain_api_pro if node_env == 'production' else vchain_api_dev
