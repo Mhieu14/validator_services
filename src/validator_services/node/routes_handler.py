@@ -26,7 +26,8 @@ def convert_node_to_output(
         cloud_provider=default_cloud_provider, 
         syncing=None, can_create_validator=None, 
         validator_info=None, 
-        chain_info = None
+        chain_info = None,
+        admin_monitoring = None,
     ):
     fullnode_info = node.get("fullnode_info")
     fullnode_address = None
@@ -61,6 +62,8 @@ def convert_node_to_output(
         output["validator_info"] = validator_info
     if chain_info:
         output["chain_info"] = chain_info
+    if admin_monitoring:
+        output["admin_monitoring"] = admin_monitoring
     return output
 
 async def get_syncing_status(droplet_ip):
@@ -111,7 +114,15 @@ class NodeHandler:
         count_nodes = await self.__database.count(collection=Database.NODES, query=query)
         nodes_output = []
         for node in nodes:
-            nodes_output.append(convert_node_to_output(node))
+            admin_monitoring = None
+            if (node["status"] == NodeStatus.CREATED.name):
+                droplet_ip = get_public_ip_droplet(node["droplet"])
+                if user_info["role"] == "admin":
+                    admin_monitoring = {
+                        "ip": droplet_ip,
+                        "monitoring_url": f"http://{droplet_ip}:9999/d/cosmos_validator/cosmos-validator"
+                    }
+            nodes_output.append(convert_node_to_output(node, admin_monitoring=admin_monitoring))
         return {
             "nodes": nodes_output,
             "meta": {
@@ -136,10 +147,16 @@ class NodeHandler:
             project = await self.__database.find_by_id(collection=Database.PROJECTS, id=node.get("project_id"))
         syncing = None
         can_create_validator = False
+        admin_monitoring = None
         if (node["status"] == NodeStatus.CREATED.name):
             droplet_ip = get_public_ip_droplet(node["droplet"])
             syncing = await get_syncing_status(droplet_ip)
             can_create_validator = not syncing
+            if user_info["role"] == "admin":
+                admin_monitoring = {
+                    "ip": droplet_ip,
+                    "monitoring_url": f"http://{droplet_ip}:9999/d/cosmos_validator/cosmos-validator"
+                }
         validator_info = None
         if node.get('validator'):
             validator_address = node['validator'].get('validator_address')
@@ -153,7 +170,14 @@ class NodeHandler:
             can_create_validator = False
         chain_info = await get_chain_info(node.get("network"))
         return success({
-            "node": convert_node_to_output(node, project=project, syncing=syncing, can_create_validator=can_create_validator, validator_info=validator_info, chain_info=chain_info)
+            "node": convert_node_to_output(
+                node, project=project, 
+                syncing=syncing, 
+                can_create_validator=can_create_validator, 
+                validator_info=validator_info, 
+                chain_info=chain_info,
+                admin_monitoring=admin_monitoring
+            )
         })
 
     async def send_message_create_node(self, node, node_id, user_info, snapshot_info, setup_config):
