@@ -74,7 +74,7 @@ class ProjectHandler:
             return ApiNotFound("Project")
         if user_info["role"] != "admin" and user_info["user_id"] != project["user_id"]:
             raise ApiForbidden("")
-        nodes = await self._node_handler.get_nodes_data(project_id=project_id, skip=skip, limit=limit)
+        nodes = await self._node_handler.get_nodes_data(project_id=project_id, skip=skip, limit=limit, user_info=user_info)
         project["nodes"] = nodes["nodes"]
         return success({
             "project": project,
