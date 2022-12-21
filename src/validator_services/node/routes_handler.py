@@ -20,6 +20,11 @@ sys.path.append(os.path.dirname(os.path.dirname(current)))
 from validator_share_model.src.messages_queue import node_pb2
 
 _LOGGER = get_logger(__name__)
+NODE_PROMEHEUS_PORT = 9092
+NODE_REST_PORT = 1317
+NODE_RPC_PORT = 26657
+NODE_GRAFANA_PORT = 9999
+NODE_PROTOCOL = "http"
 
 def convert_node_to_output(
         node, project=None, 
@@ -30,7 +35,8 @@ def convert_node_to_output(
         admin_monitoring = None,
         chain_stake_info = None,
         monitoring = None,
-        sync_info = None
+        sync_info = None,
+        endpoint = None,
     ):
     fullnode_info = node.get("fullnode_info")
     fullnode_address = None
@@ -73,11 +79,13 @@ def convert_node_to_output(
         output["monitoring"] = monitoring
     if sync_info:
         output["sync_info"] = sync_info
+    if endpoint:
+        output["endpoint"] = endpoint
     return output
 
 async def get_syncing_status(droplet_ip):
     try:
-        response_status = requests.get(f"http://{droplet_ip}:1317/syncing")
+        response_status = requests.get(f"{NODE_PROTOCOL}://{droplet_ip}:1317/syncing")
         response_status.raise_for_status()
         data = response_status.json()
         return data["syncing"]
@@ -87,7 +95,7 @@ async def get_syncing_status(droplet_ip):
 
 async def get_node_status_rpc(droplet_ip):
     try:
-        response_status = requests.get(f"http://{droplet_ip}:26657/status")
+        response_status = requests.get(f"{NODE_PROTOCOL}://{droplet_ip}:26657/status")
         response_status.raise_for_status()
         data = response_status.json()
         return data["result"]
@@ -108,7 +116,7 @@ async def get_node_status_rpc(droplet_ip):
 def get_admin_monitoring(droplet_ip):
     return {
         "ip": droplet_ip,
-        "monitoring_url": f"http://{droplet_ip}:9999/d/cosmos_validator/cosmos-validator"
+        "monitoring_url": f"{NODE_PROTOCOL}://{droplet_ip}:{NODE_GRAFANA_PORT}/d/cosmos_validator/cosmos-validator"
     }
 
 async def get_chain_info(network):
@@ -117,9 +125,21 @@ async def get_chain_info(network):
         response_status = requests.get(f"{VchainApiConfig.VCHAIN_API}/api/v1/staking/chain-stake-info", params)
         response_status.raise_for_status()
         data = response_status.json()
+        tokens_bonded = data.get("stakeInfo").get("totalBondedToken")
+        tokens_not_bonded = data.get("stakeInfo").get("totalNotBondedTokens")
+        tokens_total = None
+        if (tokens_not_bonded is not None and tokens_bonded is not None):
+            tokens_total = tokens_bonded + tokens_not_bonded 
+        chain_stake_info = {
+            "name" : data.get("chainInfo").get("chainName"),
+            "price": data.get("stakeInfo").get("price"),
+            "tokens_bonded": data.get("stakeInfo").get("totalBondedToken"),
+            "tokens_total": tokens_total,
+            "apr": data.get("stakeInfo").get("apr") * 100
+        }
         return {
             "chain_info": data.get("chainInfo"),
-            "chain_stake_info": data.get("stakeInfo")
+            "chain_stake_info": chain_stake_info
         }
     except Exception as error:
         _LOGGER.error(f"get_chain_info error: {error}")
@@ -141,7 +161,7 @@ async def get_validator_info(database: Database, node):
 
 async def get_node_monitoring_query_range(droplet_ip):
     query = "node_cpu_seconds_total"
-    res = requests.get(f"http://{droplet_ip}:9092/api/v1/query?query={query}[1m]")
+    res = requests.get(f"http://{droplet_ip}:{NODE_PROMEHEUS_PORT}/api/v1/query?query={query}[1m]")
     res.raise_for_status()
     res_results = res.json()["data"]["result"]
     cpu_count = 0
@@ -161,7 +181,7 @@ async def get_node_monitoring_query_range(droplet_ip):
 
 async def get_node_monitoring_query_momment(droplet_ip):
     query = "{__name__=~'node_memory_MemTotal_bytes|node_memory_MemAvailable_bytes'}"
-    res = requests.get(f"http://{droplet_ip}:9092/api/v1/query?query={query}")
+    res = requests.get(f"http://{droplet_ip}:{NODE_PROMEHEUS_PORT}/api/v1/query?query={query}")
     res.raise_for_status()
     res_results = res.json()["data"]["result"]
 
@@ -190,6 +210,12 @@ async def get_node_monitoring(droplet_ip):
         _LOGGER.error(f"get_node_basic_monitoring_info error: {error}")
         return {}
 
+def get_node_endpoint(droplet_ip):
+    return {
+        "lcd": f"{NODE_PROTOCOL}://{droplet_ip}:{NODE_REST_PORT}",
+        "rpc": f"{NODE_PROTOCOL}://{droplet_ip}:{NODE_RPC_PORT}",
+    }
+
 class NodeHandler:
     def __init__(self, database: Database, broker_client: BrokerClient):
         self.__database: Database = database
@@ -210,11 +236,7 @@ class NodeHandler:
             admin_monitoring = None
             if (node["status"] == NodeStatus.CREATED.name):
                 droplet_ip = get_public_ip_droplet(node["droplet"])
-                if user_info["role"] == "admin":
-                    admin_monitoring = {
-                        "ip": droplet_ip,
-                        "monitoring_url": f"http://{droplet_ip}:9999/d/cosmos_validator/cosmos-validator"
-                    }
+                admin_monitoring = get_admin_monitoring(droplet_ip) if user_info["role"] == "admin" else None
             nodes_output.append(convert_node_to_output(node, admin_monitoring=admin_monitoring))
         return {
             "nodes": nodes_output,
@@ -257,9 +279,10 @@ class NodeHandler:
         sync_info = node_status.get("sync_info", {})
         syncing = sync_info.get("catching_up")
         admin_monitoring = get_admin_monitoring(droplet_ip) if user_info["role"] == "admin" else None
+        endpoint = get_node_endpoint(droplet_ip)
+        monitoring = await get_node_monitoring(droplet_ip)
         validator_info = await get_validator_info(self.__database, node) if node.get('validator') else None
         can_create_validator = (not node.get('validator')) and syncing == False
-        monitoring = await get_node_monitoring(droplet_ip)
         return success({
             "node": convert_node_to_output(
                 node, project=project, 
@@ -270,7 +293,8 @@ class NodeHandler:
                 chain_stake_info=chain["chain_stake_info"],
                 admin_monitoring=admin_monitoring,
                 sync_info=sync_info,
-                monitoring=monitoring
+                monitoring=monitoring,
+                endpoint=endpoint
             )
         })
 
@@ -391,7 +415,7 @@ class NodeHandler:
             "network": existed_node["network"],
             "moniker": existed_node["moniker"],
             "operatorAddress": validator["validator_address"],
-            "publicKey": fullnode_info.get("ValidatorInfo", {}).get("PubKey", {}).get("value"),
+            "publicKey": fullnode_info.get("validator_info", {}).get("pub_key", {}).get("value"),
         })
         routing_key = "driver.node.request.add_validator_monitoring"
         message = {
