@@ -28,6 +28,9 @@ def convert_node_to_output(
         validator_info=None, 
         chain_info = None,
         admin_monitoring = None,
+        chain_stake_info = None,
+        monitoring = None,
+        sync_info = None
     ):
     fullnode_info = node.get("fullnode_info")
     fullnode_address = None
@@ -64,6 +67,12 @@ def convert_node_to_output(
         output["chain_info"] = chain_info
     if admin_monitoring:
         output["admin_monitoring"] = admin_monitoring
+    if chain_stake_info:
+        output["chain_stake_info"] = chain_stake_info
+    if monitoring:
+        output["monitoring"] = monitoring
+    if sync_info:
+        output["sync_info"] = sync_info
     return output
 
 async def get_syncing_status(droplet_ip):
@@ -76,26 +85,109 @@ async def get_syncing_status(droplet_ip):
         _LOGGER.error(error)
         return None
 
-async def get_validator_info(droplet_ip, validator_address):
+async def get_node_status_rpc(droplet_ip):
     try:
-        response_status = requests.get(f"http://{droplet_ip}:1317/cosmos/staking/v1beta1/validators/{validator_address}")
+        response_status = requests.get(f"http://{droplet_ip}:26657/status")
         response_status.raise_for_status()
         data = response_status.json()
-        return data["validator"]
+        return data["result"]
     except Exception as error:
         _LOGGER.error(error)
-        return None
+        return {}
+
+# async def get_validator_info(droplet_ip, validator_address):
+#     try:
+#         response_status = requests.get(f"http://{droplet_ip}:1317/cosmos/staking/v1beta1/validators/{validator_address}")
+#         response_status.raise_for_status()
+#         data = response_status.json()
+#         return data["validator"]
+#     except Exception as error:
+#         _LOGGER.error(error)
+#         return None
+
+def get_admin_monitoring(droplet_ip):
+    return {
+        "ip": droplet_ip,
+        "monitoring_url": f"http://{droplet_ip}:9999/d/cosmos_validator/cosmos-validator"
+    }
 
 async def get_chain_info(network):
     try:
-        params = { "chainId": network }
-        response_status = requests.get(f"{VchainApiConfig.VCHAIN_API}/api/v1/chain/chain-info", params)
+        params = { "network": network }
+        response_status = requests.get(f"{VchainApiConfig.VCHAIN_API}/api/v1/staking/chain-stake-info", params)
         response_status.raise_for_status()
         data = response_status.json()
-        return data["chainInfo"]
+        return {
+            "chain_info": data.get("chainInfo"),
+            "chain_stake_info": data.get("stakeInfo")
+        }
     except Exception as error:
-        _LOGGER.error(error)
-        return None
+        _LOGGER.error(f"get_chain_info error: {error}")
+        return {
+            "chain_info": None,
+            "chain_stake_info": None
+        }
+
+async def get_validator_info(database: Database, node):
+    validator_address = node['validator'].get('validator_address')
+    validator_info = await database.find_one(collection=Database.VALIDATORS, query={"operatorAddress": validator_address})
+    if validator_info.get('votingPower') and validator_info.get('totalBondedToken'): 
+        validator_info['votingPercentage'] = (100 * validator_info.get('votingPower')) / validator_info.get('totalBondedToken')
+    properties_percentage = ['commissionRate', 'commissionMaxRate', 'apr', 'actualStakingAPR', 'finalStakingAPR']
+    for item in properties_percentage:
+        if validator_info.get(item):
+            validator_info[item] = validator_info.get(item) * 100
+
+async def get_node_monitoring_query_range(droplet_ip):
+    query = "node_cpu_seconds_total"
+    res = requests.get(f"http://{droplet_ip}:9092/api/v1/query?query={query}[1m]")
+    res.raise_for_status()
+    res_results = res.json()["data"]["result"]
+    cpu_count = 0
+    time_start = res_results[0]["values"][0][0]
+    time_end = res_results[0]["values"][-1][0]
+    deltas = []
+    for result in res_results:
+        if (result["metric"]["mode"] == "idle"):
+            value_start = float(result["values"][0][1])
+            value_end = float(result["values"][-1][1])
+            deltas.append(value_end - value_start)
+            cpu_count = cpu_count + 1
+    return {
+        "cpu_percentage": round(100 - 100 * sum(deltas) / len(deltas) / (time_end - time_start), 1),
+        "cpu_count": cpu_count
+    }
+
+async def get_node_monitoring_query_momment(droplet_ip):
+    query = "{__name__=~'node_memory_MemTotal_bytes|node_memory_MemAvailable_bytes'}"
+    res = requests.get(f"http://{droplet_ip}:9092/api/v1/query?query={query}")
+    res.raise_for_status()
+    res_results = res.json()["data"]["result"]
+
+    node_memory_total_bytes = 0
+    node_memory_available_bytes = 0
+    for result in res_results:
+        if (result["metric"]["__name__"] == "node_memory_MemTotal_bytes"):
+            node_memory_total_bytes = float(result["value"][1])
+        if (result["metric"]["__name__"] == "node_memory_MemAvailable_bytes"):
+            node_memory_available_bytes = float(result["value"][1])
+    return {
+        "ram_total": f"{round(node_memory_total_bytes / 10**9, 2)} GB",
+        "ram_used": f"{round((node_memory_total_bytes - node_memory_available_bytes) / 10**9, 2)} GB",
+        "ram_percentage": round(100 - 100 * (node_memory_available_bytes / node_memory_total_bytes), 1)
+    }
+        
+async def get_node_monitoring(droplet_ip):
+    try:
+        query_range = await get_node_monitoring_query_range(droplet_ip)
+        query_momment = await get_node_monitoring_query_momment(droplet_ip)
+        result = {}
+        result.update(query_range)
+        result.update(query_momment)
+        return result
+    except Exception as error:
+        _LOGGER.error(f"get_node_basic_monitoring_info error: {error}")
+        return {}
 
 class NodeHandler:
     def __init__(self, database: Database, broker_client: BrokerClient):
@@ -145,38 +237,39 @@ class NodeHandler:
         project = None
         if node.get("project_id"):
             project = await self.__database.find_by_id(collection=Database.PROJECTS, id=node.get("project_id"))
-        syncing = None
-        can_create_validator = False
-        admin_monitoring = None
-        if (node["status"] == NodeStatus.CREATED.name):
-            droplet_ip = get_public_ip_droplet(node["droplet"])
-            syncing = await get_syncing_status(droplet_ip)
-            can_create_validator = not syncing
-            if user_info["role"] == "admin":
-                admin_monitoring = {
-                    "ip": droplet_ip,
-                    "monitoring_url": f"http://{droplet_ip}:9999/d/cosmos_validator/cosmos-validator"
-                }
-        validator_info = None
-        if node.get('validator'):
-            validator_address = node['validator'].get('validator_address')
-            validator_info = await self.__database.find_one(collection=Database.VALIDATORS, query={"operatorAddress": validator_address})
-            if validator_info.get('votingPower') and validator_info.get('totalBondedToken'): 
-                validator_info['votingPercentage'] = (100 * validator_info.get('votingPower')) / validator_info.get('totalBondedToken')
-            properties_percentage = ['commissionRate', 'commissionMaxRate', 'apr', 'actualStakingAPR', 'finalStakingAPR']
-            for item in properties_percentage:
-                if validator_info.get(item):
-                    validator_info[item] = validator_info.get(item) * 100
-            can_create_validator = False
-        chain_info = await get_chain_info(node.get("network"))
+
+        chain = await get_chain_info(node.get("network"))
+
+        if (node["status"] != NodeStatus.CREATED.name):
+            return success({
+                "node": convert_node_to_output(
+                    node, project=project, 
+                    syncing=False,
+                    can_create_validator=False,
+                    chain_info=chain["chain_info"],
+                    chain_stake_info=chain["chain_stake_info"]
+                )
+            })
+
+        droplet_ip = get_public_ip_droplet(node["droplet"])
+        node_status = await get_node_status_rpc(droplet_ip)
+        sync_info = node_status.get("sync_info", {})
+        syncing = sync_info.get("catching_up")
+        admin_monitoring = get_admin_monitoring(droplet_ip) if user_info["role"] == "admin" else None
+        validator_info = get_validator_info(self.__database, node) if node.get('validator') else None
+        can_create_validator = (not node.get('validator')) and syncing == False
+        monitoring = await get_node_monitoring(droplet_ip)
         return success({
             "node": convert_node_to_output(
                 node, project=project, 
                 syncing=syncing, 
                 can_create_validator=can_create_validator, 
-                validator_info=validator_info, 
-                chain_info=chain_info,
-                admin_monitoring=admin_monitoring
+                validator_info=validator_info,
+                chain_info=chain["chain_info"],
+                chain_stake_info=chain["chain_stake_info"],
+                admin_monitoring=admin_monitoring,
+                sync_info=sync_info,
+                monitoring=monitoring
             )
         })
 

@@ -690,6 +690,15 @@ definitions:
         $ref: '#/definitions/ProjectModel'
       cloud_provider:
         $ref: '#/definitions/CloudProviderModel'
+      can_create_provider:
+        type: boolean
+      monitoring:
+        $ref: '#/definitions/MonitoringModel'
+      chain_stake_info:
+        $ref: '#/definitions/ChainStakeInfoModel'
+      sync_info:
+        $ref: '#/definitions/SyncInfoModel'
+
   NodeCreateModel:
     type: object
     properties:
@@ -745,3 +754,88 @@ definitions:
         description: name
         type: string
         example: DigitalOcean
+  MonitoringModel:
+    type: object
+    properties:
+      cpu_percentage:
+        description: cpu_percentage
+        type: number
+        example: 10.1
+      cpu_count:
+        description: cpu_count
+        type: number
+        example: 2
+      ram_total:
+        description: ram_total
+        type: string
+        example: 2.08 GB
+      ram_used:
+        description: ram_used
+        type: string
+        example: 0.68 GB
+      ram_percentage:
+        description: ram_percentage
+        type: number
+        example: 32.8
+  ChainStakeInfoModel:
+    type: object
+    properties:
+      network:
+        description: network
+        type: string
+        example: ibc-0
+      apr:
+        description: apr
+        type: number
+        example: 0.5293325057561687
+      actualStakingAPR:
+        description: actualStakingAPR
+        type: number
+        example: 0.47984781586666614
+      price:
+        description: price
+        type: number
+        example: 0.00201962
+      totalBondedToken:
+        description: totalBondedToken
+        type: number
+        example: 414226521.06259
+      totalNotBondedTokens:
+        description: totalNotBondedTokens
+        type: number
+        example: 40656565.356771
+  SyncInfoModel:
+    type: object
+    properties:
+      latest_block_hash:
+        description: latest_block_hash
+        type: string
+        example: B6DC343923264E8D7A649FF8B7AD0A11BCCE52EB68D41DEF14B37C503520022D
+      latest_app_hash:
+        description: latest_app_hash
+        type: string
+        example: B697D9F273EFBC7D9427DFFD73491D6049EFE076A0B9853377DD0E0BC012E47C
+      latest_block_height:
+        description: latest_block_height
+        type: string
+        example: 451870
+      latest_block_time:
+        description: latest_block_time
+        type: string
+        example: "2022-12-21T04:28:49.228331045Z"
+      earliest_block_hash:
+        description: earliest_block_hash
+        type: string
+        example: B6DC343923264E8D7A649FF8B7AD0A11BCCE52EB68D41DEF14B37C503520022D
+      earliest_app_hash:
+        description: earliest_app_hash
+        type: string
+        example: B697D9F273EFBC7D9427DFFD73491D6049EFE076A0B9853377DD0E0BC012E47C
+      earliest_block_height:
+        description: earliest_block_height
+        type: string
+        example: 451870
+      earliest_block_time:
+        description: earliest_block_time
+        type: string
+        example: "2022-12-21T04:28:49.228331045Z"
