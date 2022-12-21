@@ -256,7 +256,7 @@ class NodeHandler:
         sync_info = node_status.get("sync_info", {})
         syncing = sync_info.get("catching_up")
         admin_monitoring = get_admin_monitoring(droplet_ip) if user_info["role"] == "admin" else None
-        validator_info = get_validator_info(self.__database, node) if node.get('validator') else None
+        validator_info = await get_validator_info(self.__database, node) if node.get('validator') else None
         can_create_validator = (not node.get('validator')) and syncing == False
         monitoring = await get_node_monitoring(droplet_ip)
         return success({
