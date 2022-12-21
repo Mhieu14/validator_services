@@ -548,8 +548,6 @@ definitions:
             properties:
               node:
                 $ref: '#/definitions/NodeModel'
-              meta:
-                $ref: '#/definitions/MetaModel'
   SnapshotSuccessRes:
     allOf: 
       - $ref: '#/definitions/BaseSuccessRes'
@@ -698,6 +696,8 @@ definitions:
         $ref: '#/definitions/ChainStakeInfoModel'
       sync_info:
         $ref: '#/definitions/SyncInfoModel'
+      endpoint:
+        $ref: '#/definitions/EndpointModel'
 
   NodeCreateModel:
     type: object
@@ -784,24 +784,24 @@ definitions:
         description: network
         type: string
         example: ibc-0
+      name:
+        description: name
+        type: string
+        example: Vchain testnet
       apr:
         description: apr
         type: number
         example: 0.5293325057561687
-      actualStakingAPR:
-        description: actualStakingAPR
-        type: number
-        example: 0.47984781586666614
       price:
         description: price
         type: number
         example: 0.00201962
-      totalBondedToken:
-        description: totalBondedToken
+      tokens_total:
+        description: tokens_total
         type: number
         example: 414226521.06259
-      totalNotBondedTokens:
-        description: totalNotBondedTokens
+      tokens_bonded:
+        description: tokens_bonded
         type: number
         example: 40656565.356771
   SyncInfoModel:
@@ -839,3 +839,14 @@ definitions:
         description: earliest_block_time
         type: string
         example: "2022-12-21T04:28:49.228331045Z"
+  EndpointModel:
+    type: object
+    properties:
+      lcd:
+        description: lcd
+        type: string
+        example: http://206.189.147.222:1317
+      rpc:
+        description: rpc
+        type: string
+        example: http://206.189.147.222:26657
