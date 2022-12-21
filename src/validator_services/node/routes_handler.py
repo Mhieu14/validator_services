@@ -137,6 +137,7 @@ async def get_validator_info(database: Database, node):
     for item in properties_percentage:
         if validator_info.get(item):
             validator_info[item] = validator_info.get(item) * 100
+    return validator_info
 
 async def get_node_monitoring_query_range(droplet_ip):
     query = "node_cpu_seconds_total"
