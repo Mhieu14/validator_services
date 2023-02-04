@@ -13,6 +13,7 @@ from snapshot.status import SnapshotStatus
 from utils.helper import convertProtobufToJSON, get_public_ip_droplet
 from clouds.providers import default_cloud_provider
 from config import VchainApiConfig
+from node.validator_info import get_validator_info_rest_api
 
 current = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.dirname(os.path.dirname(current)))
@@ -135,7 +136,8 @@ async def get_chain_info(network):
             "price": data.get("stakeInfo").get("price"),
             "tokens_bonded": data.get("stakeInfo").get("totalBondedToken"),
             "tokens_total": tokens_total,
-            "apr": data.get("stakeInfo").get("apr") * 100
+            "apr": data.get("stakeInfo").get("apr") * 100,
+            "decimal": data.get("chainInfo").get("decimal")
         }
         return {
             "chain_info": data.get("chainInfo"),
@@ -281,7 +283,7 @@ class NodeHandler:
         admin_monitoring = get_admin_monitoring(droplet_ip) if user_info["role"] == "admin" else None
         endpoint = get_node_endpoint(droplet_ip)
         monitoring = await get_node_monitoring(droplet_ip)
-        validator_info = await get_validator_info(self.__database, node) if node.get('validator') else None
+        validator_info = await get_validator_info_rest_api(node, chain["chain_info"], chain["chain_stake_info"]) if node.get('validator') else None
         can_create_validator = (not node.get('validator')) and syncing == False
         return success({
             "node": convert_node_to_output(
