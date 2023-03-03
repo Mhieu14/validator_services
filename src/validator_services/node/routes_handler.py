@@ -253,6 +253,12 @@ class NodeHandler:
         nodes_data = await self.get_nodes_data(user_info, project_id, skip, limit)
         return success(nodes_data)
 
+    async def get_nodes_admin(self, user_info={}, project_id=None, skip=None, limit=None):
+        if user_info["role"] != "admin":
+            raise ApiForbidden("")
+        nodes_data = await self.get_nodes_data({}, project_id, skip, limit)
+        return success(nodes_data)
+
     async def get_node(self, node_id, user_info):
         node = await self.__database.find_by_id(collection=Database.NODES, id=node_id)
         if node is None:
@@ -284,6 +290,7 @@ class NodeHandler:
         endpoint = get_node_endpoint(droplet_ip)
         monitoring = await get_node_monitoring(droplet_ip)
         validator_info = await get_validator_info_rest_api(node, chain["chain_info"], chain["chain_stake_info"]) if node.get('validator') else None
+        print(validator_info)
         can_create_validator = (not node.get('validator')) and syncing == False
         return success({
             "node": convert_node_to_output(

@@ -124,6 +124,13 @@ class RouteHandler:
         response = await self._node_handler.get_nodes(user_info, project_id, skip, limit)
         return response
 
+    async def get_nodes_admin(self, request, user_info):
+        skip = int(request.rel_url.query.get("offset", 0))
+        limit = int(request.rel_url.query.get("limit", 20))
+        project_id = request.rel_url.query.get("project_id")
+        response = await self._node_handler.get_nodes_admin(project_id, skip, limit)
+        return response
+
     async def get_node(self, request, user_info):
         node_id = request.match_info.get("node_id", "")
         _LOGGER.debug(f"Get node {node_id} information")

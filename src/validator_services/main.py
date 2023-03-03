@@ -65,6 +65,7 @@ async def setup_service(app):
         app.router.add_route("POST", "/v1/snapshots/{snapshot_id}/update", handler.update_snapshot)
 
         # node
+        app.router.add_route("GET", "/v1/admin/nodes", handler.get_nodes)
         app.router.add_route("GET", "/v1/nodes", handler.get_nodes)
         app.router.add_route("GET", "/v1/nodes/{node_id}", handler.get_node)
         app.router.add_route("POST", "/v1/nodes", handler.create_node)
